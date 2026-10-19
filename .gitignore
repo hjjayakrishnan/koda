@@ -1,0 +1,35 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Run outputs
+out/
+runs/
+*.pt
+*.zip
+*.pkl
+
+# Video and image products
+*.mp4
+*.webm
+*.gif
+*.avi
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local notes — never committed, so nothing lands in public history
+notes/
