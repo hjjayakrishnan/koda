@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "koda"
+version = "0.1.0"
+description = "Give it a robot and one sentence. Get back the reward function and a trained robot."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = []
+
+[project.optional-dependencies]
+# Stage B only. Stage A runs on the standard library alone.
+sim = ["upkie", "stable-baselines3", "torch"]
+
+[project.scripts]
+koda = "koda.cli:main"
+
+[tool.setuptools]
+packages = ["koda"]

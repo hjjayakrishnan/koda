@@ -24,6 +24,29 @@ out/
 
 ---
 
+## Running it
+
+The loop itself needs nothing installed — Python 3.10 or newer and the standard
+library:
+
+```
+python3 -m koda.cli run --robot upkie --goal "balance upright and drive forward at the commanded speed"
+```
+
+After `pip install -e .` the same thing is spelled `koda run --robot upkie --goal "..."`.
+
+That command writes `out/run.json`, `out/report.html` and the exact prompt text
+sent for each round. By default it runs on the hand-written candidates in
+`fixtures/` and the stub trainer, which means no API call, no simulator and no
+money — and the report says so on its own first line. Training against PyBullet
+needs the extras: `pip install -e '.[sim]'`.
+
+```
+python3 tests/test_loop.py      # 169 checks, a few seconds
+```
+
+---
+
 ## Why this problem exists
 
 Upkie's simulation environments ship with no reward function. The maintainers wrote

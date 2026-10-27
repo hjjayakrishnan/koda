@@ -1,0 +1,24 @@
+# Verbatim excerpt from upkie 13.1.0, file upkie/envs/upkie_env.py, lines 219-242.
+# Apache-2.0, copyright the Upkie contributors. Included so the model can see the
+# hole it is being asked to fill. Stage A reads this file; Stage B reads the same
+# lines straight out of the installed upkie package.
+
+    def step(self, action: dict) -> Tuple[dict, float, bool, bool, dict]:
+        # Regulate loop frequency, if applicable
+        if self.__regulate_frequency:
+            self.__rate.sleep()  # wait until clock tick to send the action
+
+        # Convert environment action to spine action and apply it
+        spine_action = self.get_spine_action(action)
+        spine_action["env"] = self.__log
+        spine_observation = self.backend.step(spine_action)
+
+        # Get observation
+        observation = self.get_env_observation(spine_observation)
+        reward = 0.0  # to be decided by agents, for instance via wrappers
+        terminated = False
+        truncated = False  # will be handled by e.g. a TimeLimit wrapper
+
+        info = {"spine_observation": spine_observation}
+
+        return observation, reward, terminated, truncated, info
