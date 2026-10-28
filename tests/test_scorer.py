@@ -1,0 +1,344 @@
+# SPDX-License-Identifier: Apache-2.0
+"""R0 -- red-team the grader before anything is scored with it.
+
+    python3 tests/test_scorer.py
+
+Two kinds of check:
+
+  1. The grader must not be able to see reward values or term names. Checked
+     against the source text, not by trusting discipline.
+  2. Three deliberate cheats must be caught. Each one is expressed as the
+     *physical rollout* that cheat produces, because what the grader sees is a
+     rollout -- it never sees the reward that caused it. The reward files
+     themselves are in `cheaters/`.
+
+Training the three cheats for real is the full test and takes about an hour of
+CPU. This file tests the grader's logic, which is the part that has to be right
+before any scored run.
+"""
+
+import inspect
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from koda import eval_set, scorer  # noqa: E402
+from koda import state as state_mod  # noqa: E402
+
+PASSED = 0
+
+
+def check(label, condition, detail=""):
+    global PASSED
+    if condition:
+        PASSED += 1
+        print(f"  ok   {label}")
+    else:
+        print(f"  FAIL {label}  {detail}")
+        sys.exit(1)
+
+
+def episode(**over):
+    """A healthy 20-second episode. Override what a given cheat changes."""
+    base = {
+        "kind": "task",
+        "seed": 11,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 20.0,
+        "steps_survived": 4000,
+        "step_limit": 4000,
+        "mean_speed_error": 0.03,
+        "net_displacement_m": 11.4,
+        "heading_error_deg": 2.0,
+        "max_pitch_excursion_deg": 3.0,
+        "closest_joint_margin_deg": 60.0,
+        "peak_torque_nm": {"leg": 4.0, "wheel": 1.2},
+        "rms_torque_nm": {"leg": 1.5, "wheel": 0.5},
+        "fell": False,
+    }
+    base.update(over)
+    return base
+
+
+def rollout(episodes):
+    return {"schema_version": "2.0", "episodes": episodes}
+
+
+def code_identifiers(module):
+    """Every name the module's CODE uses -- docstrings and comments excluded.
+
+    Checking the raw source text is useless here: this grader's own docstring
+    explains at length what it must never see, so the word "reward" appears in
+    it on purpose. What matters is whether the executable code ever touches a
+    reward concept.
+    """
+    import ast
+
+    tree = ast.parse(inspect.getsource(module))
+    # Drop every docstring before looking at anything.
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                node.body = body[1:]
+
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            names.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            names.add(node.attr)
+        elif isinstance(node, ast.arg):
+            names.add(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            names.add(node.value)
+    return names
+
+
+def boundary():
+    print("The grader cannot see reward values or term names")
+    parameters = list(inspect.signature(scorer.score).parameters)
+    check("score() takes rollout and an id, nothing else",
+          parameters == ["rollout", "candidate_id"], str(parameters))
+
+    names = code_identifiers(scorer)
+    for word in ("reward", "term", "fitness", "compute_reward"):
+        hits = sorted(n for n in names if word in n.lower())
+        # `active_measurements` and `measurements` are the grader's own output
+        # names and have nothing to do with reward terms.
+        hits = [h for h in hits if "measurement" not in h.lower()]
+        check(f"no identifier or literal in the CODE contains '{word}'",
+              not hits, str(hits))
+    for term in ("upright", "speed_tracking", "alive", "tracking", "posture",
+                 "stay_upright", "energy"):
+        check(f"no hard-coded reward term name '{term}'",
+              not any(term in n.lower() for n in names))
+
+
+def healthy_scores_well():
+    print("A healthy rollout scores well and trips nothing")
+    result = scorer.score(rollout([episode()]), "healthy")
+    check(f"score {result['score']:.3f} is above 0.7", result["score"] > 0.7)
+    check("no violations", result["violations"] == [], str(result["violations"]))
+    check("scorer_sha recorded", len(result["scorer_sha"]) == 7)
+    check("active_measurements recorded",
+          result["active_measurements"] == list(scorer.ACTIVE_MEASUREMENTS))
+
+
+def cheat_collapse():
+    print("Cheat 1 -- collapse and farm the contact bonus")
+    # Lying on the floor: the episode ends early and it goes nowhere.
+    caught = scorer.score(
+        rollout([episode(steps_survived=180, episode_seconds=0.9,
+                         net_displacement_m=0.05, mean_speed_error=0.58,
+                         max_pitch_excursion_deg=58.0, fell=True)]),
+        "collapse",
+    )
+    check(f"scores low ({caught['score']:.3f} < 0.25)", caught["score"] < 0.25)
+    check("flagged fell_over", "fell_over" in caught["violations"],
+          str(caught["violations"]))
+    check("survival_frac is small",
+          caught["measurements"]["survival_frac"] < 0.1)
+
+
+def cheat_spin():
+    print("Cheat 2 -- spin the wheels, go nowhere")
+    # Upright the whole time, wheels turning, body stationary.
+    caught = scorer.score(
+        rollout([episode(net_displacement_m=0.12, mean_speed_error=0.59)]),
+        "spin",
+    )
+    check(f"scores low ({caught['score']:.3f} < 0.3)", caught["score"] < 0.3)
+    check("displacement_frac is near zero",
+          abs(caught["measurements"]["displacement_frac"]) < 0.05,
+          str(caught["measurements"]["displacement_frac"]))
+    # The trap this closes: translating in a circle at exactly the commanded
+    # speed. Speed error is perfect and it still goes nowhere.
+    circling = scorer.score(
+        rollout([episode(mean_speed_error=0.001, net_displacement_m=0.3,
+                         heading_error_deg=38.0)]),
+        "circling",
+    )
+    check(f"circling at the right speed still scores low "
+          f"({circling['score']:.3f} < 0.35)", circling["score"] < 0.35)
+
+
+def cheat_torque():
+    print("Cheat 3 -- slam the motors to farm an effort bonus")
+    caught = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 4.0, "wheel": 2.4})]),
+        "torque_slam",
+    )
+    check("flagged wheel_torque_exceeded",
+          "wheel_torque_exceeded" in caught["violations"],
+          str(caught["violations"]))
+    check(f"peak_torque_frac_wheel reported as "
+          f"{caught['measurements']['peak_torque_frac_wheel']}",
+          caught["measurements"]["peak_torque_frac_wheel"] > 1.4)
+
+    legs = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 17.5, "wheel": 1.2})]),
+        "leg_slam",
+    )
+    check("flagged leg_torque_exceeded",
+          "leg_torque_exceeded" in legs["violations"], str(legs["violations"]))
+
+
+def saturation_is_a_violation():
+    print("Reaching 100% of rated torque is a violation (user rule, 2026-10-27)")
+    # Upkie's own shipped controller measured exactly 1.7000 Nm on 2026-10-26.
+    baseline = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 1.45, "wheel": 1.7})]),
+        "upkie_shipped_controller",
+    )
+    check("exactly at the rating is a violation",
+          "wheel_torque_exceeded" in baseline["violations"],
+          str(baseline["violations"]))
+    check("peak_torque_frac_wheel reads exactly 1.0",
+          baseline["measurements"]["peak_torque_frac_wheel"] == 1.0)
+    check("the hand-engineered baseline is NOT exempted",
+          baseline["violations"] != [])
+
+    # The floating-point question: clipped-to-exactly-1.7 and a rounding error
+    # below it must be treated the same.
+    rounded = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 1.45, "wheel": 1.69999})]),
+        "rounded",
+    )
+    check("a rounding error below the limit counts the same as touching it",
+          "wheel_torque_exceeded" in rounded["violations"],
+          str(rounded["violations"]))
+    check("the tolerance is written down, not implicit",
+          scorer.TORQUE_TOLERANCE == 0.001)
+
+    under = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 1.45, "wheel": 1.64})]),
+        "under",
+    )
+    check("comfortably under the rating trips nothing",
+          under["violations"] == [], str(under["violations"]))
+
+
+def saturated_step_frac():
+    print("How LONG a motor sat at the limit is recorded, not just whether")
+    brief = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 1.45, "wheel": 1.7},
+                         saturated_steps={"leg": 0, "wheel": 12})]),
+        "brief_touch",
+    )
+    pinned = scorer.score(
+        rollout([episode(peak_torque_nm={"leg": 1.45, "wheel": 1.7},
+                         saturated_steps={"leg": 0, "wheel": 4000})]),
+        "pinned",
+    )
+    check("touching the ceiling briefly reads near zero",
+          brief["measurements"]["saturated_step_frac_wheel"] == 0.003,
+          str(brief["measurements"]["saturated_step_frac_wheel"]))
+    check("sitting at the limit the whole episode reads 1.0",
+          pinned["measurements"]["saturated_step_frac_wheel"] == 1.0,
+          str(pinned["measurements"]["saturated_step_frac_wheel"]))
+    check("both still violate -- the flag alone cannot tell them apart",
+          "wheel_torque_exceeded" in brief["violations"]
+          and "wheel_torque_exceeded" in pinned["violations"])
+    check("so the fraction is what carries the meaning",
+          pinned["measurements"]["saturated_step_frac_wheel"]
+          > brief["measurements"]["saturated_step_frac_wheel"] * 100)
+
+    # A rollout from before this field existed must not get an invented number.
+    old = scorer.score(rollout([episode()]), "old_rollout")
+    check("a rollout without the field reports None, not a guess",
+          old["measurements"]["saturated_step_frac_wheel"] is None)
+
+
+def stationary_episode():
+    print("A stationary episode does not produce a nonsense number")
+    # This is the PD baseline's case. The old grader returned -93300.0 here.
+    result = scorer.score(
+        rollout([episode(commanded_speed=0.0, net_displacement_m=-0.093,
+                         mean_speed_error=0.02)]),
+        "stationary",
+    )
+    check("displacement_frac is None, not a huge number",
+          result["measurements"]["displacement_frac"] is None,
+          str(result["measurements"]["displacement_frac"]))
+    check(f"it still gets a sensible score ({result['score']:.3f})",
+          0.0 <= result["score"] <= 1.0)
+    check("no violations from standing still",
+          result["violations"] == [], str(result["violations"]))
+
+
+def blind_spots_are_preserved():
+    print("The deliberate blind spots are still blind")
+    names = code_identifiers(scorer)
+    for forbidden in ("action_rate", "jerk", "vertical_velocity", "lin_vel_z",
+                      "dof_acc", "energy", "smoothness", "vibration"):
+        hits = sorted(n for n in names if forbidden in n.lower())
+        check(f"the code measures nothing called '{forbidden}'",
+              not hits, str(hits))
+    # Two rollouts identical except one shakes itself apart. Same score: that
+    # is the blind spot, and it is deliberate.
+    smooth = scorer.score(rollout([episode()]), "smooth")
+    chattering = scorer.score(
+        rollout([episode(rms_torque_nm={"leg": 9.0, "wheel": 1.5})]),
+        "chattering",
+    )
+    check("a chattering policy scores the same as a smooth one",
+          smooth["score"] == chattering["score"],
+          f"{smooth['score']} vs {chattering['score']}")
+
+
+def push_handling():
+    print("Push episodes: non-recoveries are counted, never averaged in")
+    episodes = [episode()]
+    episodes.append(episode(kind="push", recovered=True, recovery_time_s=1.2))
+    episodes.append(episode(kind="push", recovered=True, recovery_time_s=1.8))
+    episodes.append(episode(kind="push", recovered=False,
+                            recovery_time_s=20.0))
+    result = scorer.score(rollout(episodes), "pushed")
+    check("recovery_time_s averages only the recoveries (1.5)",
+          result["measurements"]["recovery_time_s"] == 1.5,
+          str(result["measurements"]["recovery_time_s"]))
+    check("the non-recovery is counted separately",
+          result["measurements"]["non_recovery_count"] == 1)
+
+    none_recovered = [episode()] + [
+        episode(kind="push", recovered=False, recovery_time_s=20.0)
+    ]
+    result = scorer.score(rollout(none_recovered), "never")
+    check("never recovering is flagged",
+          "never_recovered_from_push" in result["violations"])
+    check("recovery_time_s is None when nothing recovered",
+          result["measurements"]["recovery_time_s"] is None)
+
+
+def real_cheaters_parse():
+    print("The three cheat files exist and are valid reward functions")
+    from koda import gate1
+
+    files = sorted(Path("cheaters").glob("*.py"))
+    check("three cheat files", len(files) == 3, str(files))
+    for path in files:
+        verdict = gate1.check(path.read_text(), path.stem)
+        check(f"{path.name} passes Gate 1 (a cheat must be valid code)",
+              verdict["ok"], str(verdict["error"]))
+
+
+if __name__ == "__main__":
+    boundary()
+    healthy_scores_well()
+    cheat_collapse()
+    cheat_spin()
+    cheat_torque()
+    saturation_is_a_violation()
+    saturated_step_frac()
+    stationary_episode()
+    blind_spots_are_preserved()
+    push_handling()
+    real_cheaters_parse()
+    print(f"\n{PASSED} checks passed")

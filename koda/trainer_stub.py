@@ -113,6 +113,11 @@ def _discrimination(reward_fn):
     )
 
 
+# The stub has no simulator, so it names its own control rate purely to turn
+# the eval set's seconds into a step count.
+STUB_FREQUENCY = 100.0
+
+
 def _rollout(rng, balance, motion):
     """Made-up physical numbers for all 20 evaluation episodes.
 
@@ -128,15 +133,17 @@ def _rollout(rng, balance, motion):
         speed = episode["commanded_speed"]
         jitter = rng.uniform(0.9, 1.1)
         survival = min(1.0, max(0.05, (0.12 + 0.88 * quality) * jitter))
-        steps = int(eval_set.STEP_LIMIT * survival)
-        seconds = round(steps * state_mod.DT, 3)
+        step_limit = eval_set.step_limit(STUB_FREQUENCY)
+        steps = int(step_limit * survival)
+        seconds = round(steps / STUB_FREQUENCY, 3)
 
         record = dict(episode)
         record.update(
             {
+                "fell": steps < step_limit,
                 "episode_seconds": seconds,
                 "steps_survived": steps,
-                "step_limit": eval_set.STEP_LIMIT,
+                "step_limit": step_limit,
                 "mean_speed_error": round(speed * 0.95 * (1.0 - motion) * jitter, 4),
                 "net_displacement_m": round(
                     speed * seconds * (0.05 + 0.95 * motion) * jitter, 4

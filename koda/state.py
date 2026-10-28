@@ -210,3 +210,44 @@ def fake_action(state: dict) -> dict:
         "ground_velocity": state["commanded_speed"],
         "yaw_velocity": state["commanded_yaw_rate"],
     }
+
+
+def state_from_pendulum(
+    observation,
+    spine_observation: dict,
+    commanded_speed: float,
+    dt: float,
+) -> dict:
+    """Flatten the Pendulum env's two objects into one state dictionary.
+
+    `Upkie-PyBullet-Pendulum` is `UpkieGyropod` with the yaw dimensions removed,
+    so its observation is 4 numbers rather than 6:
+
+        [pitch, ground_position, pitch_rate, ground_velocity]
+
+    There is no yaw in this environment at all, so `yaw`, `yaw_rate` and
+    `commanded_yaw_rate` are all zero. They stay in the state dictionary because
+    the contract in INTERFACE.md section 2a says a reward function always gets
+    the same 28 keys.
+    """
+    servo = spine_observation.get("servo", {})
+    floor_contact = spine_observation.get("floor_contact", {})
+
+    state = {
+        "dt": float(dt),
+        "pitch": float(observation[0]),
+        "pitch_rate": float(observation[2]),
+        "ground_position": float(observation[1]),
+        "ground_velocity": float(observation[3]),
+        "yaw": 0.0,
+        "yaw_rate": 0.0,
+        "commanded_speed": float(commanded_speed),
+        "commanded_yaw_rate": 0.0,
+        "contact": 1.0 if floor_contact.get("contact", False) else 0.0,
+    }
+    for joint in JOINTS:
+        joint_obs = servo.get(joint, {})
+        state[f"{joint}_position"] = float(joint_obs.get("position", 0.0))
+        state[f"{joint}_velocity"] = float(joint_obs.get("velocity", 0.0))
+        state[f"{joint}_torque"] = float(joint_obs.get("torque", 0.0))
+    return state

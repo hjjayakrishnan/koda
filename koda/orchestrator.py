@@ -24,10 +24,12 @@ from pathlib import Path
 from koda import SCHEMA_VERSION, candidates as candidates_mod
 from koda import eval_set, gate1, prompt as prompt_mod, reflect, sanitize
 
-# The two swap points. Stage B changes these two lines and nothing else.
-#   trainer: trainer_stub -> trainer_pybullet
-#   scorer:  scorer_stub  -> scorer   (written and owned by the other pane)
-from koda import scorer_stub as scorer
+# The two swap points.
+#   scorer:  the real grader, red-teamed in tests/test_scorer.py. Swapped in
+#            2026-10-26. `scorer_stub.py` is kept only so an old run record can
+#            still be read back; no new run uses it.
+#   trainer: trainer_stub -> trainer_pybullet, once real training is proven.
+from koda import scorer  # noqa: F401
 from koda import trainer_stub as trainer
 
 

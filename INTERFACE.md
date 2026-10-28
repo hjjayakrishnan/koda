@@ -205,7 +205,9 @@ are the pathology catalogue and they feed the next prompt.
       "max_pitch_excursion_deg": 7.2,
       "closest_joint_margin_deg": 7.4,
       "peak_torque_nm": { "leg": 3.42, "wheel": 1.07 },
-      "rms_torque_nm": { "leg": 1.73, "wheel": 0.41 }
+      "rms_torque_nm": { "leg": 1.73, "wheel": 0.41 },
+      "saturated_steps": { "leg": 0, "wheel": 12 },
+      "fell": false
     },
     {
       "kind": "push",
@@ -229,6 +231,8 @@ are the pathology catalogue and they feed the next prompt.
 | `max_pitch_excursion_deg` | **new.** Worst pitch reached during the episode |
 | `recovered`, `recovery_time_s` | **new.** Push episodes only |
 | `peak_torque_nm`, `rms_torque_nm`, each split into `leg` and `wheel` | **new.** Raw newton-metres, per actuator class |
+| `saturated_steps`, split into `leg` and `wheel` | **new, rev 4.1.** Count of control steps where at least one motor of that class sat at its rated limit. Counted per step, not per joint, so the denominator is `steps_survived` |
+| `fell` | **new, rev 4.1.** True when the episode ended early because the robot went over |
 
 ### Three things that are easy to get wrong
 
@@ -279,6 +283,8 @@ though it were a slow recovery.
     "closest_joint_margin_deg": 6.1,
     "peak_torque_frac_leg": 0.43,
     "peak_torque_frac_wheel": 0.74,
+    "saturated_step_frac_leg": 0.0,
+    "saturated_step_frac_wheel": 0.003,
     "recovery_time_s": 1.26,
     "non_recovery_count": 1
   },
@@ -299,12 +305,44 @@ though it were a slow recovery.
 | `heading_error_deg` | **max** | worst drift |
 | `max_pitch_excursion_deg` | **max** | worst case |
 | `closest_joint_margin_deg` | **min** | a mean would hide one near-miss |
-| `peak_torque_frac_*` | **max**, then divided by the rated limit | anything above 1.0 is over the limit |
+| `peak_torque_frac_*` | **max**, then divided by the rated limit | **reaching 1.0 is a violation** -- see below |
+| `saturated_step_frac_*` | total saturated steps / total steps survived | how *long* a motor sat at its limit, not just whether it got there |
 | `recovery_time_s` | mean over recovered episodes only | |
 
 `displacement_frac` overlaps `mean_speed_error` on purpose: a policy translating
 in a tight circle scores well on one and badly on the other. The grader weights
 them so forward progress is not counted twice.
+
+### Torque: two numbers, and why
+
+**Reaching 100% of an actuator's rated torque is a violation.** User decision,
+2026-10-27. Wheels 1.7 Nm, legs 16.0 Nm, both read from the installed upkie
+model.
+
+This flags **Upkie's own shipped controllers**, which measured exactly 1.7000 Nm
+-- 100% of the mj5208 rating -- just to stand still. That is reported exactly as
+measured. The baseline is not exempted and the number is not rounded down: a
+shipped controller maxing out the motors it runs on is a real observation about
+this robot, and hiding it to tidy the comparison would be dishonest.
+
+Because the baseline violates and most balancing candidates will too, the flag
+on its own stops separating good from bad. So there are two numbers:
+
+| field | what it answers |
+|---|---|
+| `peak_torque_frac_*` | did it ever reach the limit — **the violation fires on this** |
+| `saturated_step_frac_*` | what share of the episode it *sat* there |
+
+The second is the one that carries meaning. Touching the ceiling once while
+recovering from a shove is ordinary engineering. Sitting at 100% for twenty
+seconds destroys the motor. Same raw data, one extra counter, and it is what
+makes the pathology catalogue's hardware claims specific rather than binary.
+
+**The floating-point question is settled with a written-down tolerance.** The
+simulator clamps a commanded torque at the rated value, so a clipped reading is
+exactly 1.7 while an arithmetically identical one can land at 1.6999999. The
+test is `frac >= 1.0 - 0.001`, so both count the same way. It was `> 1.7`, which
+let a value land on the limit and pass on a tie.
 
 `active_measurements` is the list the score is computed over, pre-registered at
 `prereg-v1`. **Scores from searches with different `active_measurements` are never
@@ -386,6 +424,14 @@ Swapping the real one in is one import line in `koda/orchestrator.py`.
 ---
 
 ## Changelog
+
+**rev 4.1** — `saturated_steps` and `fell` added to `rollout`;
+`saturated_step_frac_*` added to `ScoreResult`. Reaching 100% of rated torque is
+a violation, with a written-down 0.001 tolerance replacing a floating-point tie.
+`displacement_frac` returns `None` for a zero commanded speed rather than the
+-93300.0 a guarded epsilon produced. Survival became a **gate** on the score
+rather than a 0.45 additive share, after R0 caught the spin-in-place cheat
+scoring 0.432 on the strength of standing still.
 
 **rev 4** — Rewritten for Upkie on PyBullet. **Added §2a, the reward-function
 signature, which did not exist in any form before.** Applied the `rollout` field
