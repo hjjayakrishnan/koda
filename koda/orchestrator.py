@@ -30,7 +30,25 @@ from koda import eval_set, gate1, prompt as prompt_mod, reflect, sanitize
 #            still be read back; no new run uses it.
 #   trainer: trainer_stub -> trainer_pybullet, once real training is proven.
 from koda import scorer  # noqa: F401
-from koda import trainer_stub as trainer
+# The trainer is selected per run, not imported once. `trainer_stub` fakes the
+# numbers so the loop can be exercised offline in seconds; `trainer_pybullet`
+# is real PPO and takes about 17 minutes a candidate. Importing the stub at
+# module level was how a "real" search could have called Nemotron for actual
+# money and then fake-trained its output.
+from koda import trainer_stub
+
+
+def _pick_trainer(name: str):
+    if name == "pybullet":
+        from koda import trainer_pybullet  # noqa: PLC0415
+
+        return trainer_pybullet
+    if name == "stub":
+        return trainer_stub
+    raise ValueError(f"unknown trainer: {name!r}")
+
+
+trainer = trainer_stub  # replaced per-run by run(); see _pick_trainer
 
 
 def _dead_result(candidate_id, round_number, verdict):
@@ -98,7 +116,7 @@ def _pathologies(round_number, records):
     return out
 
 
-def _grade_one(source, candidate_id, round_number, goal, seed):
+def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_stub):
     """Gate 1, then train, then grade. Returns one candidate record."""
     verdict = gate1.check(source, candidate_id)
     if not verdict["ok"]:
@@ -117,10 +135,10 @@ def _grade_one(source, candidate_id, round_number, goal, seed):
     return {"candidate_id": candidate_id, "trainer": result, "score": score}
 
 
-def _human_baseline(path, goal, seed):
+def _human_baseline(path, goal, seed, trainer=trainer_stub):
     """Run the entrant's own hand-written reward through the identical path."""
     source = Path(path).read_text()
-    record = _grade_one(source, "human_baseline", 0, goal, seed)
+    record = _grade_one(source, "human_baseline", 0, goal, seed, trainer)
     return {
         "source_path": str(path),
         "status": record["trainer"]["status"],
@@ -143,8 +161,11 @@ def run(
     seed: int = 0,
     search_id: str = "A_healthy_upkie",
     human_baseline_path: str | None = None,
+    source: str = "nemotron",
+    trainer_name: str = "pybullet",
 ) -> dict:
     """Run the whole search. Returns the run record and writes it to disk."""
+    trainer = _pick_trainer(trainer_name)
     out = Path(out_dir)
     (out / "prompts").mkdir(parents=True, exist_ok=True)
     run_path = out / "run.json"
@@ -160,6 +181,7 @@ def run(
             "candidates": candidates,
             "rounds": rounds,
             "seed": seed,
+            "candidate_source": source,
             "trainer": trainer.name(),
             "scorer": scorer.name(),
             "candidate_source": "fixtures",
@@ -169,6 +191,9 @@ def run(
         "rounds": [],
         "pathologies": [],
         "bill": {
+            "model_calls": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
             "compute_seconds": 0.0,
             "usd_compute": 0.0,
             "usd_tokens": 0.0,
@@ -177,7 +202,9 @@ def run(
     }
 
     if human_baseline_path and Path(human_baseline_path).exists():
-        record["human_baseline"] = _human_baseline(human_baseline_path, goal, seed)
+        record["human_baseline"] = _human_baseline(
+            human_baseline_path, goal, seed, trainer
+        )
 
     best_source = None
     best_reflection = None
@@ -195,7 +222,30 @@ def run(
         prompt_path = out / "prompts" / f"round{round_number}.txt"
         prompt_path.write_text(clean)
 
-        batch = candidates_mod.from_fixtures(round_number, candidates)
+        if source == "nemotron":
+            raw_path = out / "prompts" / f"round{round_number}_reply.txt"
+            batch, call_meta = candidates_mod.from_nemotron(
+                clean, round_number, candidates, save_raw=raw_path
+            )
+            # Every candidate's source is written to disk too, so a search is
+            # reproducible from its own record without replaying the API.
+            for candidate in batch:
+                src = out / "candidates" / f"round{round_number}"
+                src.mkdir(parents=True, exist_ok=True)
+                (src / f"{candidate['candidate_id']}.py").write_text(
+                    candidate["source"] + "\n"
+                )
+                candidate["source_path"] = str(
+                    (src / f"{candidate['candidate_id']}.py").relative_to(out)
+                )
+            record["bill"]["prompt_tokens"] += call_meta["prompt_tokens"] or 0
+            record["bill"]["completion_tokens"] += call_meta["completion_tokens"] or 0
+            record["bill"]["model_calls"] += 1
+            record["model"] = call_meta["model"]
+        elif source == "fixtures":
+            batch = candidates_mod.from_fixtures(round_number, candidates)
+        else:
+            raise ValueError(f"unknown candidate source: {source!r}")
         records = []
         for candidate in batch:
             graded = _grade_one(
@@ -204,6 +254,7 @@ def run(
                 round_number,
                 goal,
                 seed,
+                trainer,
             )
             graded["source_path"] = candidate["source_path"]
             graded["source"] = candidate["source"]
@@ -252,3 +303,125 @@ def run(
     record["wall_seconds"] = round(time.time() - started, 2)
     run_path.write_text(json.dumps(record, indent=2))
     return record
+
+
+def search_all(
+    goal: str,
+    seeds=(11,),
+    robot: str = "upkie",
+    rounds: int = 3,
+    candidates: int = 6,
+    out_dir: str = "out",
+    source: str = "nemotron",
+    trainer_name: str = "pybullet",
+    human_baseline_path: str | None = None,
+) -> dict:
+    r"""Run the whole search once per seed, and compare the results.
+
+    One search is `candidates` reward functions x `rounds` rounds. This runs X
+    of those, where X is `len(seeds)`, each from a different random seed.
+
+        seeds=(11,)            X=1   18 training runs,  3 model calls
+        seeds=(11, 23, 37)     X=3   54 training runs,  9 model calls
+
+    Why repeat it at all: the result moves with the seed. Two runs identical
+    except for the seed differed by 12 seconds of total survival (measured
+    2026-10-27). One search tells you what happened once, not whether it would
+    happen again.
+
+    Each search writes its own self-contained record to
+    `out/search_<seed>/run.json` -- prompts, raw replies, every candidate's
+    source, every traceback, every score, the winner, the reflection, the
+    pathologies and the bill. Nothing has to be written down by hand.
+
+    This function adds `out/summary.json` on top: the winning score from each
+    search and the spread between them, which is the only thing that needs more
+    than one search to say.
+    """
+    searches = []
+    for seed in seeds:
+        record = run(
+            goal=goal,
+            robot=robot,
+            rounds=rounds,
+            candidates=candidates,
+            out_dir=str(Path(out_dir) / f"search_{seed}"),
+            seed=seed,
+            search_id=f"seed_{seed}",
+            human_baseline_path=human_baseline_path,
+            source=source,
+            trainer_name=trainer_name,
+        )
+        searches.append(record)
+
+    winners = []
+    for record in searches:
+        scored = [
+            r["winner"] for r in record["rounds"] if r.get("winner")
+        ]
+        final = record["rounds"][-1].get("winner") if record["rounds"] else None
+        winners.append(
+            {
+                "seed": record["config"]["seed"],
+                "final_winner": final,
+                "rounds_with_a_winner": len(scored),
+            }
+        )
+
+    scores = []
+    for record in searches:
+        last = record["rounds"][-1] if record["rounds"] else None
+        best = None
+        if last:
+            graded = [
+                c["score"]["score"]
+                for c in last["candidates"]
+                if c.get("score")
+            ]
+            best = max(graded) if graded else None
+        scores.append(best)
+
+    present = [s for s in scores if s is not None]
+    summary = {
+        "schema_version": SCHEMA_VERSION,
+        "goal": goal,
+        "robot": robot,
+        "X": len(seeds),
+        "seeds": list(seeds),
+        "candidates_per_round": candidates,
+        "rounds": rounds,
+        "training_runs": len(seeds) * rounds * candidates,
+        "candidate_source": source,
+        "trainer": trainer_name,
+        "winners": winners,
+        "final_round_best_score": scores,
+        "spread": (
+            {
+                "min": min(present),
+                "max": max(present),
+                "range": round(max(present) - min(present), 4),
+            }
+            if len(present) > 1
+            else None
+        ),
+        "bill": {
+            "model_calls": sum(r["bill"]["model_calls"] for r in searches),
+            "prompt_tokens": sum(r["bill"]["prompt_tokens"] for r in searches),
+            "completion_tokens": sum(
+                r["bill"]["completion_tokens"] for r in searches
+            ),
+            "compute_seconds": round(
+                sum(r["bill"]["compute_seconds"] for r in searches), 1
+            ),
+        },
+        "note": (
+            "X searches is a reproducibility check, not a significance test. "
+            "Three samples give a range, not a confidence interval."
+            if 1 < len(seeds) < 5
+            else None
+        ),
+    }
+    path = Path(out_dir) / "summary.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(summary, indent=2))
+    return summary
