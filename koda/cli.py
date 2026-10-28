@@ -37,6 +37,22 @@ def main(argv=None) -> int:
              "the seed.",
     )
     run.add_argument(
+        "--steps",
+        type=int,
+        default=None,
+        help="PPO steps per candidate. Default is the trainer's own (30,000). "
+             "500,000 is what produced a policy that learned anything, at "
+             "about 17 min a candidate.",
+    )
+    run.add_argument(
+        "--jobs",
+        type=int,
+        default=6,
+        help="how many candidates in a round train at once, each in its own "
+             "process. Rounds stay sequential -- round 2 needs round 1's "
+             "winner. Default 6, which is one per candidate.",
+    )
+    run.add_argument(
         "--trainer",
         choices=("pybullet", "stub"),
         default="pybullet",
@@ -78,7 +94,7 @@ def main(argv=None) -> int:
         f"X={len(seeds)} search(es), seeds {list(seeds)}: "
         f"{args.candidates} candidates x {args.rounds} rounds x {len(seeds)} "
         f"= {runs_planned} training runs, "
-        f"{len(seeds) * args.rounds} {args.source} call(s), trainer={args.trainer}\n"
+        f"{len(seeds) * args.rounds} {args.source} call(s), trainer={args.trainer}, jobs={args.jobs}\n"
     )
 
     summary = orchestrator.search_all(
@@ -90,6 +106,8 @@ def main(argv=None) -> int:
         out_dir=args.out,
         source=args.source,
         trainer_name=args.trainer,
+        jobs=args.jobs,
+        steps=args.steps,
         human_baseline_path=args.human_baseline,
     )
 

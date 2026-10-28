@@ -116,7 +116,62 @@ def _pathologies(round_number, records):
     return out
 
 
-def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_stub):
+def _grade_worker(payload):
+    """Train and grade one candidate, in its own process.
+
+    Has to be a module-level function taking only picklable arguments, so the
+    trainer arrives as a NAME and is resolved here rather than passed as a
+    module object.
+
+    Two things are set per worker:
+
+    * `torch.set_num_threads(1)`. Torch defaults to 8 on this machine, so six
+      workers would put 48 threads on 16 cores and every run would be slower
+      than running them one at a time.
+    * Nothing else -- each process gets its own PyBullet physics server, which
+      is the reason this is processes and not threads. `reward_env.make_env`
+      warns that a second environment in the same process can disconnect the
+      first one's server; separate processes sidestep that entirely rather than
+      working around it.
+    """
+    source, candidate_id, round_number, goal, seed, trainer_name, steps = payload
+    try:
+        import torch  # noqa: PLC0415
+
+        torch.set_num_threads(1)
+    except Exception:
+        pass
+    return _grade_one(
+        source, candidate_id, round_number, goal, seed,
+        _pick_trainer(trainer_name), steps,
+    )
+
+
+def _grade_batch(batch, round_number, goal, seed, trainer_name, jobs, steps):
+    """Grade a round's candidates, `jobs` at a time, in candidate order.
+
+    Candidates within a round are independent -- each trains a fresh policy
+    from the same starting point -- so they parallelise cleanly. Rounds do not:
+    round 2's prompt is built from round 1's winner.
+
+    Results come back in the order they were submitted regardless of which
+    finished first, so the winner on a tie does not depend on scheduling.
+    """
+    payloads = [
+        (c["source"], c["candidate_id"], round_number, goal, seed, trainer_name, steps)
+        for c in batch
+    ]
+    if jobs <= 1 or len(payloads) == 1:
+        return [_grade_worker(p) for p in payloads]
+
+    import concurrent.futures as futures  # noqa: PLC0415
+
+    with futures.ProcessPoolExecutor(max_workers=jobs) as pool:
+        return list(pool.map(_grade_worker, payloads))
+
+
+def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_stub,
+               steps=None):
     """Gate 1, then train, then grade. Returns one candidate record."""
     verdict = gate1.check(source, candidate_id)
     if not verdict["ok"]:
@@ -126,7 +181,10 @@ def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_s
             "score": None,
         }
 
-    result = trainer.train(verdict["reward_fn"], candidate_id, round_number, goal, seed)
+    kwargs = {} if steps is None else {"total_steps": steps}
+    result = trainer.train(
+        verdict["reward_fn"], candidate_id, round_number, goal, seed, **kwargs
+    )
     score = (
         scorer.score(result["rollout"], candidate_id)
         if result["status"] == "trained"
@@ -163,6 +221,8 @@ def run(
     human_baseline_path: str | None = None,
     source: str = "nemotron",
     trainer_name: str = "pybullet",
+    jobs: int = 1,
+    steps: int | None = None,
 ) -> dict:
     """Run the whole search. Returns the run record and writes it to disk."""
     trainer = _pick_trainer(trainer_name)
@@ -182,6 +242,8 @@ def run(
             "rounds": rounds,
             "seed": seed,
             "candidate_source": source,
+            "jobs": jobs,
+            "steps_per_candidate": steps,
             "trainer": trainer.name(),
             "scorer": scorer.name(),
             "candidate_source": "fixtures",
@@ -204,7 +266,7 @@ def run(
     if human_baseline_path and Path(human_baseline_path).exists():
         record["human_baseline"] = _human_baseline(
             human_baseline_path, goal, seed, trainer
-        )
+        )  # baseline uses the trainer's own default step count
 
     best_source = None
     best_reflection = None
@@ -246,19 +308,12 @@ def run(
             batch = candidates_mod.from_fixtures(round_number, candidates)
         else:
             raise ValueError(f"unknown candidate source: {source!r}")
-        records = []
-        for candidate in batch:
-            graded = _grade_one(
-                candidate["source"],
-                candidate["candidate_id"],
-                round_number,
-                goal,
-                seed,
-                trainer,
-            )
+        records = _grade_batch(
+            batch, round_number, goal, seed, trainer_name, jobs, steps
+        )
+        for graded, candidate in zip(records, batch):
             graded["source_path"] = candidate["source_path"]
             graded["source"] = candidate["source"]
-            records.append(graded)
 
         scored = [r for r in records if r["score"] is not None]
         winner = max(scored, key=lambda r: r["score"]["score"]) if scored else None
@@ -314,6 +369,8 @@ def search_all(
     out_dir: str = "out",
     source: str = "nemotron",
     trainer_name: str = "pybullet",
+    jobs: int = 1,
+    steps: int | None = None,
     human_baseline_path: str | None = None,
 ) -> dict:
     r"""Run the whole search once per seed, and compare the results.
@@ -351,6 +408,8 @@ def search_all(
             human_baseline_path=human_baseline_path,
             source=source,
             trainer_name=trainer_name,
+            jobs=jobs,
+            steps=steps,
         )
         searches.append(record)
 
@@ -393,6 +452,8 @@ def search_all(
         "training_runs": len(seeds) * rounds * candidates,
         "candidate_source": source,
         "trainer": trainer_name,
+        "jobs": jobs,
+        "steps_per_candidate": steps,
         "winners": winners,
         "final_round_best_score": scores,
         "spread": (
