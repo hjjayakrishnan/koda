@@ -25,6 +25,7 @@ A pathology that survives this grader is the finding, not a bug to patch.
 boundary has broken.
 """
 
+import math
 import hashlib
 from pathlib import Path
 
@@ -57,7 +58,37 @@ WEIGHTS = {
     "displacement": 0.45,
 }
 
-SPEED_ERROR_SCALE = 0.3   # m/s of mean error that takes the speed part to zero
+# Velocity tracking uses the standard exponential form from `legged_gym` and
+# Isaac Lab (`track_lin_vel_xy_exp`), which is what essentially all legged
+# locomotion RL uses:
+#
+#     tracking = exp(-error**2 / tracking_sigma)        tracking_sigma = 0.25
+#
+# The constant is named SPEED_SIGMA rather than tracking_sigma purely because
+# the grader is forbidden from using reward-term vocabulary in its own
+# identifiers, and tests/test_scorer.py enforces that against the source. It
+# is the same quantity as legged_gym's tracking_sigma.
+#
+# We did not invent a curve. Our contribution is automated reward design, not
+# grader design, so the grader uses the field's standard metric and can be
+# checked against any locomotion paper.
+#
+# It replaced a linear `max(0, 1 - error/0.3)` on 2026-10-27, before prereg-v1
+# and before any search was run. That version had a dead zone: any mean error
+# at or above 0.3 m/s scored exactly 0, so 0.32 m/s and 2.0 m/s were
+# indistinguishable across 55% of the score. Upkie's own MPC balancer sits at
+# 0.321 m/s, so the most heavily weighted term was pinned at zero for the
+# baseline and would have been for most candidates. Since the grader also picks
+# each round's winner, a flat term means selection ignores it entirely.
+#
+#     mean error   linear (old)   exp (now)
+#       0.20          0.333         0.852
+#       0.321         0.000         0.662     <- Upkie MPC baseline
+#       0.50          0.000         0.368
+#       1.00          0.000         0.018
+#
+# No dead zone, gradient everywhere a candidate might land.
+SPEED_SIGMA = 0.25
 HEADING_SCALE_DEG = 45.0  # degrees of worst drift that takes the score to zero
 
 # --------------------------------------------------------------------------
@@ -178,7 +209,7 @@ def _task_score(episodes):
     displacement = _mean([_displacement_frac(e) for e in episodes])
     worst_heading = max(e["heading_error_deg"] for e in episodes)
 
-    speed_part = max(0.0, 1.0 - speed_error / SPEED_ERROR_SCALE)
+    speed_part = math.exp(-(speed_error * speed_error) / SPEED_SIGMA)
     heading_factor = max(0.0, 1.0 - worst_heading / HEADING_SCALE_DEG)
 
     if displacement is None:

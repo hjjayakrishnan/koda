@@ -317,6 +317,58 @@ def push_handling():
           result["measurements"]["recovery_time_s"] is None)
 
 
+def tracking_has_no_dead_zone():
+    """The bug the old grader had, and nothing here caught it.
+
+    A linear `max(0, 1 - error/0.3)` scored every mean error at or above
+    0.3 m/s as exactly zero, so 0.32 m/s and 2.0 m/s were identical across 55%
+    of the score. Every other test in this file passed with that in place.
+    """
+    import math
+
+    errors = [0.0, 0.1, 0.2, 0.3, 0.321, 0.4, 0.5, 0.75, 1.0]
+    parts = [math.exp(-(e * e) / scorer.SPEED_SIGMA) for e in errors]
+
+    # strictly decreasing -- a worse tracker always scores strictly lower
+    for a_, b_ in zip(parts, parts[1:]):
+        check(
+            f"tracking strictly decreasing past {a_:.3f}",
+            b_ < a_,
+            f"{b_} is not < {a_}",
+        )
+
+    # and never collapses to a flat zero anywhere a candidate might land
+    check(
+        "no dead zone at the baseline's own error (0.321 m/s)",
+        math.exp(-(0.321**2) / scorer.SPEED_SIGMA) > 0.5,
+        "the baseline's tracking term is near zero again",
+    )
+    check(
+        "still discriminating at 1.0 m/s error",
+        math.exp(-(1.0**2) / scorer.SPEED_SIGMA) > 0.0,
+        "flat at 1.0 m/s",
+    )
+
+
+def tracking_matches_the_published_form():
+    """It must be legged_gym's metric, not one of ours.
+
+    `exp(-error**2 / tracking_sigma)` with sigma = 0.25 is the standard in
+    legged locomotion RL (Isaac Lab's `track_lin_vel_xy_exp`). If someone
+    retunes sigma or changes the shape, this fails and they have to say so.
+    """
+    import math
+
+    check("tracking_sigma is the standard 0.25", scorer.SPEED_SIGMA == 0.25)
+    for error, expected in ((0.0, 1.0), (0.5, math.exp(-1.0)), (1.0, math.exp(-4.0))):
+        got = math.exp(-(error * error) / scorer.SPEED_SIGMA)
+        check(
+            f"exp form exact at error {error}",
+            abs(got - expected) < 1e-12,
+            f"{got} != {expected}",
+        )
+
+
 def real_cheaters_parse():
     print("The three cheat files exist and are valid reward functions")
     from koda import gate1
@@ -340,5 +392,7 @@ if __name__ == "__main__":
     stationary_episode()
     blind_spots_are_preserved()
     push_handling()
+    tracking_has_no_dead_zone()
+    tracking_matches_the_published_form()
     real_cheaters_parse()
     print(f"\n{PASSED} checks passed")
