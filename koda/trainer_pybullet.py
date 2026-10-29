@@ -202,7 +202,18 @@ def _rollout_episode(model, env, wrapper, episode):
                     hold_run = 0
 
             if terminated or truncated:
-                fell = True
+                # `truncated` is TimeLimit firing because the episode reached its
+                # step limit -- that is the robot COMPLETING the episode, not
+                # failing it. Only `terminated` is a fall: Upkie's env terminates
+                # when pitch passes its fall threshold.
+                #
+                # This read `fell = True` for both, so every policy that survived
+                # the full 20 s was recorded as having fallen and the `fell_over`
+                # violation fired on successful episodes. It did not reach the
+                # score -- survival_frac comes from steps_survived, which was
+                # correct -- but it was wrong in the record, and wrong in the
+                # direction that made our own candidates look worse.
+                fell = bool(terminated)
                 break
 
         seconds = steps_done / reward_env.FREQUENCY
