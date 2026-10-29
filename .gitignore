@@ -33,3 +33,12 @@ runs/
 
 # Local notes — never committed, so nothing lands in public history
 notes/
+
+# Trained policies: the working directory stays out, but the 17 policies from a
+# committed search are evidence -- run.json records their paths as runs/<id>/
+# policy.zip, so they are tracked in place rather than copied, which keeps those
+# recorded paths valid and lets anyone replay a result with watch_policy.py.
+!runs/
+runs/*
+!runs/r[123]c[1-6]/
+!runs/r[123]c[1-6]/policy.zip
