@@ -2,11 +2,11 @@
   "schema_version": "2.0",
   "candidate_id": "upkie_mpc_controller",
   "scorer": "koda-v1",
-  "score": 0.6031,
+  "score": 0.5341,
   "per_speed": {
-    "0.3": 0.5299,
-    "0.6": 0.6082,
-    "0.9": 0.6694
+    "0.3": 0.4307,
+    "0.6": 0.5904,
+    "0.9": 0.5002
   },
   "measurements": {
     "survival_frac": 1.0,
@@ -27,6 +27,7 @@
   },
   "active_measurements": [
     "survival_frac",
+    "saturated_step_frac_wheel",
     "mean_speed_error",
     "displacement_frac",
     "heading_error_deg"
@@ -35,14 +36,16 @@
     "wheel_torque_exceeded",
     "never_recovered_from_push"
   ],
-  "scorer_sha": "6bfd77d",
+  "scorer_sha": "333b1fa",
   "provenance": {
-    "code_sha": "d44d564149197787502b86f007a30e33c9f979e7",
-    "code_sha_short": "d44d564",
-    "dirty": true,
+    "code_sha": "447f8c7b28c75818a2b42afb036b8a2b61572b21",
+    "code_sha_short": "447f8c7",
+    "dirty": false,
+    "scorer": "koda-v1",
+    "scorer_sha": "333b1fa",
     "init_pitch_rad": 0.02,
     "push_newtons": 0.0,
-    "episodes": 20,
-    "source": "upkie.controllers.MPCBalancer"
+    "regraded": "2026-10-29",
+    "note": "re-scored from the saved rollouts. No re-simulation: score() is a pure function of the rollout, so the physics is untouched."
   }
 }

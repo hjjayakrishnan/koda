@@ -16,38 +16,55 @@ retracted and cannot be checked against the code that produced it.
 
 ## Result
 
-| id | score | was | survival | was | speed err | mean moved |
-|---|---|---|---|---|---|---|
-| r3c2 | **0.3101** | 0.1779 | **1.000** | 0.689 | 1.0823 | +6.003 m |
-| r3c4 | 0.1502 | 0.1163 | 0.320 | 0.255 | 0.9160 | +12.166 m |
-| r2c6 | 0.1231 | 0.1245 | 0.877 | 0.783 | 1.4661 | +3.272 m |
-| r2c3 | 0.1158 | 0.1401 | 0.420 | 0.532 | 0.5064 | +2.382 m |
-| r3c5 | 0.1104 | 0.1244 | 0.618 | 0.865 | 0.5806 | +0.630 m |
-| r1c6 | 0.1076 | 0.1197 | 0.947 | 1.000 | 0.6279 | -0.511 m |
-| r1c5 | 0.1000 | 0.0703 | 0.371 | 0.465 | 0.7141 | +4.126 m |
-| r2c1 | 0.0996 | 0.1368 | 0.878 | 0.841 | 0.9715 | +2.684 m |
-| r1c1 | 0.0939 | 0.0988 | 0.611 | 0.707 | 0.6265 | +0.465 m |
-| r3c3 | 0.0829 | 0.0769 | 0.241 | 0.237 | 0.7791 | +5.438 m |
-| r1c3 | 0.0513 | 0.0508 | 0.351 | 0.351 | 0.5894 | +0.246 m |
-| r1c4 | 0.0342 | 0.0481 | 0.262 | 0.364 | 0.5993 | +0.014 m |
-| r1c2 | 0.0238 | 0.0500 | 0.179 | 0.378 | 0.5983 | +0.035 m |
-| r2c5 | 0.0197 | 0.0248 | 0.162 | 0.200 | 0.6141 | -0.255 m |
-| r3c1 | 0.0102 | 0.0097 | 0.077 | 0.073 | 0.6011 | +0.028 m |
-| r2c4 | 0.0100 | 0.0095 | 0.075 | 0.071 | 0.6156 | +0.313 m |
-| r2c2 | 0.0096 | 0.0084 | 0.307 | 0.312 | 0.8466 | -4.727 m |
+| id | score | stayed_upright | torque_headroom | speed error | mean moved |
+|---|---|---|---|---|---|
+| r2c3 | **0.0943** | 0.420 | 0.861 | 0.5064 | +2.382 m |
+| r3c5 | 0.0870 | 0.618 | 0.921 | 0.5806 | +0.630 m |
+| r1c1 | 0.0816 | 0.611 | 0.966 | 0.6265 | +0.465 m |
+| r1c5 | 0.0440 | 0.371 | 0.537 | 0.7141 | +4.126 m |
+| r1c3 | 0.0276 | 0.351 | 0.961 | 0.5894 | +0.246 m |
+| r3c3 | 0.0270 | 0.241 | 0.503 | 0.7791 | +5.438 m |
+| r2c1 | 0.0212 | 0.878 | 0.381 | 0.9715 | +2.684 m |
+| r3c4 | 0.0072 | 0.320 | 0.142 | 0.9160 | +12.166 m |
+| r1c2 | 0.0060 | 0.179 | 0.922 | 0.5983 | +0.035 m |
+| r3c2 | 0.0026 | 1.000 | 0.041 | 1.0823 | +6.003 m |
+| r2c4 | 0.0010 | 0.075 | 0.141 | 0.6156 | +0.313 m |
+| r3c1 | 0.0008 | 0.077 | 0.294 | 0.6011 | +0.028 m |
+| r2c6 | 0.0001 | 0.877 | 0.029 | 1.4661 | +3.272 m |
+| r1c4 | 0.0000 | 0.262 | 0.947 | 0.5993 | +0.014 m |
+| r1c6 | 0.0000 | 0.947 | 0.988 | 0.6279 | -0.511 m |
+| r2c2 | 0.0000 | 0.307 | 0.058 | 0.8466 | -4.727 m |
+| r2c5 | 0.0000 | 0.162 | 0.918 | 0.6141 | -0.255 m |
 
-The "was" columns come from `results/search_11/run.json`. They are **retracted**
-and are shown only to say how far the broken harness was off. They are not a
-baseline and must not be quoted as one.
+**Regraded 2026-10-29 at commit `447f8c7`**, scorer `333b1fa`, from the saved
+rollouts with no re-simulation — `scorer.score()` is a pure function of a
+rollout, so the physics is untouched. The grader now multiplies in
+`torque_headroom` and takes a weighted geometric mean of speed accuracy and
+distance covered, so staying upright by thrashing, and standing still, both stop
+paying. What the change did:
+
+| id | before | after | why |
+|---|---|---|---|
+| r3c2 | 0.3101 | 0.0026 | pinned its wheels at the torque limit on 96% of steps |
+| r1c6 | 0.1076 | 0.0000 | drifted backward 0.51 m — covered no ground at all |
+| r3c4 | 0.1502 | 0.0072 | drove 12 m at wildly wrong speeds |
+| r2c3 | 0.1158 | 0.0943 | best candidate: travels 2.38 m, headroom 0.866 |
+| MPC | 0.6031 | 0.5341 | barely touched — headroom 0.910 |
 
 ## What it says
 
-**r3c2 is the only policy of the 17 that never falls.** Survival 1.000 across
-all 20 episodes, from five different starting tilts, while travelling 6 m
-forward. The old harness scored it 0.1779 and it looked unremarkable.
+**r3c2 never falls — and that was hiding how it does it.** Survival 1.000 across
+all 20 episodes while travelling 6 m forward, achieved by sitting on the wheel
+torque limit for 96% of every step. Watched in the GUI it visibly convulses. Its
+`torque_headroom` is 0.041, so it now scores 0.0026 and ranks twelfth.
 
-Watch it:
+**r2c3 is the best candidate at 0.0943.** It travels 2.38 m with headroom 0.866.
+It only survives 42% of the episode, so it is not good — it is merely the least
+bad of the seventeen once thrashing and standing still stop paying.
 
+Watch them:
+
+    ./.venv/bin/python watch_policy.py --policy runs/seed11/r2c3/policy.zip
     ./.venv/bin/python watch_policy.py --policy runs/seed11/r3c2/policy.zip
 
 **Best per round is still monotonic:** r1c6 0.1076, r2c6 0.1231, r3c2 0.3101.

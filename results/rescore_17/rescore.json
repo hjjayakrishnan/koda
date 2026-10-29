@@ -1,15 +1,17 @@
 {
   "header": {
     "generated": "re-score of search_11 policies on the fixed harness",
-    "code_sha": "7b96671e3f8aa0d0dff3d0bb0fdc5d2cd1886b57",
-    "code_sha_short": "7b96671",
+    "code_sha": "447f8c7b28c75818a2b42afb036b8a2b61572b21",
+    "code_sha_short": "447f8c7",
     "dirty": false,
     "scorer": "koda-v1",
-    "scorer_sha": "6bfd77d",
+    "scorer_sha": "333b1fa",
     "init_pitch_rad": 0.02,
     "push_newtons": 0.0,
     "episodes_per_candidate": 20,
-    "candidates": 17
+    "candidates": 17,
+    "regraded": "2026-10-29",
+    "note": "re-scored from the saved rollouts. No re-simulation: score() is a pure function of the rollout, so the physics is untouched."
   },
   "results": [
     {
@@ -20,11 +22,11 @@
         "schema_version": "2.0",
         "candidate_id": "r1c1",
         "scorer": "koda-v1",
-        "score": 0.0939,
+        "score": 0.0816,
         "per_speed": {
-          "0.3": 0.3273,
-          "0.6": 0.1292,
-          "0.9": 0.002
+          "0.3": 0.2763,
+          "0.6": 0.0,
+          "0.9": 0.0
         },
         "measurements": {
           "survival_frac": 0.611,
@@ -45,6 +47,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -54,7 +57,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -625,11 +628,11 @@
         "schema_version": "2.0",
         "candidate_id": "r1c2",
         "scorer": "koda-v1",
-        "score": 0.0238,
+        "score": 0.006,
         "per_speed": {
-          "0.3": 0.0937,
-          "0.6": 0.0069,
-          "0.9": 0.0055
+          "0.3": 0.0184,
+          "0.6": 0.0014,
+          "0.9": 0.0022
         },
         "measurements": {
           "survival_frac": 0.1789,
@@ -650,6 +653,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -659,7 +663,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -1230,11 +1234,11 @@
         "schema_version": "2.0",
         "candidate_id": "r1c3",
         "scorer": "koda-v1",
-        "score": 0.0513,
+        "score": 0.0276,
         "per_speed": {
-          "0.3": 0.3985,
-          "0.6": 0.0042,
-          "0.9": 0.0008
+          "0.3": 0.1425,
+          "0.6": 0.0014,
+          "0.9": 0.0003
         },
         "measurements": {
           "survival_frac": 0.3507,
@@ -1255,6 +1259,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -1264,7 +1269,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -1835,11 +1840,11 @@
         "schema_version": "2.0",
         "candidate_id": "r1c4",
         "scorer": "koda-v1",
-        "score": 0.0342,
+        "score": 0.0,
         "per_speed": {
-          "0.3": 0.2657,
-          "0.6": 0.0064,
-          "0.9": 0.001
+          "0.3": 0.0,
+          "0.6": 0.0012,
+          "0.9": 0.0004
         },
         "measurements": {
           "survival_frac": 0.2619,
@@ -1860,6 +1865,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -1869,7 +1875,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -2440,11 +2446,11 @@
         "schema_version": "2.0",
         "candidate_id": "r1c5",
         "scorer": "koda-v1",
-        "score": 0.1,
+        "score": 0.044,
         "per_speed": {
-          "0.3": 0.3162,
-          "0.6": 0.0643,
-          "0.9": 0.0185
+          "0.3": 0.1241,
+          "0.6": 0.0357,
+          "0.9": 0.0091
         },
         "measurements": {
           "survival_frac": 0.3708,
@@ -2465,6 +2471,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -2474,7 +2481,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -3045,11 +3052,11 @@
         "schema_version": "2.0",
         "candidate_id": "r1c6",
         "scorer": "koda-v1",
-        "score": 0.1076,
+        "score": 0.0,
         "per_speed": {
-          "0.3": 0.3022,
-          "0.6": 0.1118,
-          "0.9": 0.0193
+          "0.3": 0.0,
+          "0.6": 0.0,
+          "0.9": 0.0
         },
         "measurements": {
           "survival_frac": 0.9467,
@@ -3070,6 +3077,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -3079,7 +3087,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -3650,11 +3658,11 @@
         "schema_version": "2.0",
         "candidate_id": "r2c1",
         "scorer": "koda-v1",
-        "score": 0.0996,
+        "score": 0.0212,
         "per_speed": {
-          "0.3": 0.1614,
-          "0.6": 0.1067,
-          "0.9": 0.067
+          "0.3": 0.0649,
+          "0.6": 0.0242,
+          "0.9": 0.0039
         },
         "measurements": {
           "survival_frac": 0.8781,
@@ -3675,6 +3683,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -3683,7 +3692,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -4254,11 +4263,11 @@
         "schema_version": "2.0",
         "candidate_id": "r2c2",
         "scorer": "koda-v1",
-        "score": 0.0096,
+        "score": 0.0,
         "per_speed": {
-          "0.3": 0.0772,
-          "0.6": 0.0071,
-          "0.9": 0.0004
+          "0.3": 0.0,
+          "0.6": 0.0,
+          "0.9": 0.0
         },
         "measurements": {
           "survival_frac": 0.3066,
@@ -4279,6 +4288,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -4288,7 +4298,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -4859,11 +4869,11 @@
         "schema_version": "2.0",
         "candidate_id": "r2c3",
         "scorer": "koda-v1",
-        "score": 0.1158,
+        "score": 0.0943,
         "per_speed": {
-          "0.3": 0.286,
-          "0.6": 0.0907,
-          "0.9": 0.0513
+          "0.3": 0.1926,
+          "0.6": 0.0714,
+          "0.9": 0.0304
         },
         "measurements": {
           "survival_frac": 0.4198,
@@ -4884,6 +4894,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -4893,7 +4904,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -5464,11 +5475,11 @@
         "schema_version": "2.0",
         "candidate_id": "r2c4",
         "scorer": "koda-v1",
-        "score": 0.01,
+        "score": 0.001,
         "per_speed": {
-          "0.3": 0.0303,
-          "0.6": 0.0114,
-          "0.9": 0.0018
+          "0.3": 0.0011,
+          "0.6": 0.0009,
+          "0.9": 0.0005
         },
         "measurements": {
           "survival_frac": 0.0749,
@@ -5489,6 +5500,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -5498,7 +5510,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -6069,11 +6081,11 @@
         "schema_version": "2.0",
         "candidate_id": "r2c5",
         "scorer": "koda-v1",
-        "score": 0.0197,
+        "score": 0.0,
         "per_speed": {
-          "0.3": 0.053,
-          "0.6": 0.0254,
-          "0.9": 0.0029
+          "0.3": 0.0,
+          "0.6": 0.0,
+          "0.9": 0.0009
         },
         "measurements": {
           "survival_frac": 0.1617,
@@ -6094,6 +6106,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -6103,7 +6116,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -6674,11 +6687,11 @@
         "schema_version": "2.0",
         "candidate_id": "r2c6",
         "scorer": "koda-v1",
-        "score": 0.1231,
+        "score": 0.0001,
         "per_speed": {
-          "0.3": 0.1756,
-          "0.6": 0.1057,
-          "0.9": 0.0852
+          "0.3": 0.0001,
+          "0.6": 0.0003,
+          "0.9": 0.0001
         },
         "measurements": {
           "survival_frac": 0.877,
@@ -6699,6 +6712,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -6707,7 +6721,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -7278,11 +7292,11 @@
         "schema_version": "2.0",
         "candidate_id": "r3c1",
         "scorer": "koda-v1",
-        "score": 0.0102,
+        "score": 0.0008,
         "per_speed": {
-          "0.3": 0.0286,
-          "0.6": 0.0095,
-          "0.9": 0.0019
+          "0.3": 0.002,
+          "0.6": 0.0006,
+          "0.9": 0.0002
         },
         "measurements": {
           "survival_frac": 0.0775,
@@ -7303,6 +7317,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -7312,7 +7327,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -7883,11 +7898,11 @@
         "schema_version": "2.0",
         "candidate_id": "r3c2",
         "scorer": "koda-v1",
-        "score": 0.3101,
+        "score": 0.0026,
         "per_speed": {
-          "0.3": 0.4542,
-          "0.6": 0.2232,
-          "0.9": 0.114
+          "0.3": 0.0025,
+          "0.6": 0.0029,
+          "0.9": 0.0016
         },
         "measurements": {
           "survival_frac": 1.0,
@@ -7908,6 +7923,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -7915,7 +7931,7 @@
         "violations": [
           "wheel_torque_exceeded"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -8486,11 +8502,11 @@
         "schema_version": "2.0",
         "candidate_id": "r3c3",
         "scorer": "koda-v1",
-        "score": 0.0829,
+        "score": 0.027,
         "per_speed": {
-          "0.3": 0.2376,
-          "0.6": 0.0452,
-          "0.9": 0.0092
+          "0.3": 0.0886,
+          "0.6": 0.0166,
+          "0.9": 0.0026
         },
         "measurements": {
           "survival_frac": 0.241,
@@ -8511,6 +8527,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -8520,7 +8537,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -9091,11 +9108,11 @@
         "schema_version": "2.0",
         "candidate_id": "r3c4",
         "scorer": "koda-v1",
-        "score": 0.1502,
+        "score": 0.0072,
         "per_speed": {
-          "0.3": 0.1699,
-          "0.6": 0.1467,
-          "0.9": 0.0871
+          "0.3": 0.0115,
+          "0.6": 0.0076,
+          "0.9": 0.0033
         },
         "measurements": {
           "survival_frac": 0.3202,
@@ -9116,6 +9133,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -9124,7 +9142,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -9695,11 +9713,11 @@
         "schema_version": "2.0",
         "candidate_id": "r3c5",
         "scorer": "koda-v1",
-        "score": 0.1104,
+        "score": 0.087,
         "per_speed": {
-          "0.3": 0.2893,
-          "0.6": 0.1003,
-          "0.9": 0.0196
+          "0.3": 0.2128,
+          "0.6": 0.0682,
+          "0.9": 0.0157
         },
         "measurements": {
           "survival_frac": 0.6184,
@@ -9720,6 +9738,7 @@
         },
         "active_measurements": [
           "survival_frac",
+          "saturated_step_frac_wheel",
           "mean_speed_error",
           "displacement_frac",
           "heading_error_deg"
@@ -9729,7 +9748,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "6bfd77d"
+        "scorer_sha": "333b1fa"
       },
       "rollout": {
         "schema_version": "2.0",

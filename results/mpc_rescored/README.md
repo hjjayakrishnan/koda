@@ -14,7 +14,8 @@ RULES.md R3 requires.
 ## Result
 
 ```
-score                      0.6031        (0.5348 on the old, broken harness)
+score                      0.5341        (0.6031 before torque_headroom entered
+                                         the score; 0.5348 on the broken harness)
 survival_frac              1.0           never falls, in any of the 20 episodes
 mean_speed_error           0.2831 m/s
 displacement_frac          0.4533
@@ -35,10 +36,12 @@ It undershoots hardest at the lowest setpoint.
 
 ## Against the search
 
-| | score | survival | speed error |
-|---|---|---|---|
-| MPC, hand-built | **0.6031** | 1.000 | **0.2831** |
-| r3c2, best of 17 | 0.3101 | 1.000 | 1.0823 |
+| | score | survival | torque_headroom | speed error |
+|---|---|---|---|---|
+| MPC, hand-built | **0.5341** | 1.000 | **0.910** | **0.2831** |
+| r2c3, best candidate | 0.0943 | 0.420 | 0.866 | 0.5064 |
+| r3c2, trained with the ramp | 0.0310 | 0.630 | 0.293 | 0.8053 |
+| r3c2, no ramp | 0.0026 | 1.000 | 0.041 | 1.0823 |
 
 **The reward search did not beat the hand-engineered controller.** The baseline
 is roughly twice the best candidate.
