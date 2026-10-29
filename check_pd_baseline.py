@@ -252,9 +252,10 @@ def main() -> int:
         description="Run Upkie's own PD balancing controller and score it."
     )
     parser.add_argument(
-        "--gui",
+        "--headless",
         action="store_true",
-        help="open a PyBullet window and watch it run, instead of headless",
+        help="no window, numbers only. A window is the default -- a person "
+             "should be able to watch the robot without knowing a flag.",
     )
     parser.add_argument(
         "--episodes",
@@ -270,14 +271,14 @@ def main() -> int:
     seeds = eval_set.SEEDS[: max(1, args.episodes)]
     print(f"Upkie's shipped PD controller, {len(seeds)} episode(s) of "
           f"{EPISODE_SECONDS:.0f} s at {FREQUENCY:.0f} Hz, "
-          f"{'GUI window' if args.gui else 'headless'}.\n")
-    if args.gui:
+          f"{'headless' if args.headless else 'GUI window'}.\n")
+    if not args.headless:
         print("  A PyBullet window should open. Close it or press Ctrl-C to stop.\n")
 
     episodes = []
     frames = []
     for index, seed in enumerate(seeds):
-        record, got = run_episode(seed, want_frames=(index == 0), gui=args.gui)
+        record, got = run_episode(seed, want_frames=(index == 0), gui=not args.headless)
         episodes.append(record)
         frames += got
         print(

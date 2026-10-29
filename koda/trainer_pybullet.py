@@ -120,145 +120,155 @@ def _make_checkpoint_callback(total_steps):
 def _rollout_episode(model, env, wrapper, episode):
     """One evaluation episode with the trained policy. Real measurements.
 
-    Reuses the open environment -- see `reward_env.make_env`.
+    Takes a FRESH environment per episode -- see `train`. It used to reuse one
+    environment across all 20 episodes, which let state cross episode
+    boundaries: a push episode that fell inside the 20-step window between
+    applying the shove and clearing it left a standing force on the base, and
+    every later episode in that environment ran with it. Measured on the same
+    policy, same seed, zero torque: 1.10 s upright falling backward clean,
+    0.25 s falling forward with a leaked force, and it persisted.
+
+    The external force is also cleared explicitly after every reset below, so a
+    leak cannot survive even if an environment is reused by some future caller.
     """
     wrapper.fixed_speed = episode["commanded_speed"]
-    if True:
-        observation, info = env.reset(seed=episode["seed"])
-        backend = wrapper.env.unwrapped.backend
+    observation, info = env.reset(seed=episode["seed"])
+    backend = wrapper.env.unwrapped.backend
+    # reset() restores the robot's pose but NOT forces acting on it.
+    _apply_push(backend, 0.0)
 
-        worst_pitch = 0.0
-        peak = {"leg": 0.0, "wheel": 0.0}
-        square_sum = {"leg": 0.0, "wheel": 0.0}
-        # Control steps where at least one motor of that class sat at its rated
-        # limit. Counted per step, not per joint, so the denominator is just
-        # steps_survived and the fraction reads as "share of the episode".
-        saturated_steps = {"leg": 0, "wheel": 0}
-        margin_rad = min(JOINT_LIMITS_RAD.values())
-        speed_error_sum = 0.0
-        steps_done = 0
-        fell = False
+    worst_pitch = 0.0
+    peak = {"leg": 0.0, "wheel": 0.0}
+    square_sum = {"leg": 0.0, "wheel": 0.0}
+    # Control steps where at least one motor of that class sat at its rated
+    # limit. Counted per step, not per joint, so the denominator is just
+    # steps_survived and the fraction reads as "share of the episode".
+    saturated_steps = {"leg": 0, "wheel": 0}
+    margin_rad = min(JOINT_LIMITS_RAD.values())
+    speed_error_sum = 0.0
+    steps_done = 0
+    fell = False
 
-        recovered = None
-        recovery_step = None
-        hold_needed = int(eval_set.RECOVERY_HOLD_S * reward_env.FREQUENCY)
-        hold_run = 0
+    recovered = None
+    recovery_step = None
+    hold_needed = int(eval_set.RECOVERY_HOLD_S * reward_env.FREQUENCY)
+    hold_run = 0
 
-        is_push = episode["kind"] == "push"
-        pushed_at = None
-        disturbed = False  # has the shove actually moved it past the threshold
+    is_push = episode["kind"] == "push"
+    pushed_at = None
+    disturbed = False  # has the shove actually moved it past the threshold
 
-        for step in range(EVAL_STEPS):
-            if is_push:
-                if step == PUSH_STEP:
-                    _apply_push(backend, eval_set.PUSH_NEWTONS)
-                    pushed_at = step
-                elif step == PUSH_STEP + PUSH_HOLD_STEPS:
-                    _apply_push(backend, 0.0)
-
-            action, _ = model.predict(observation, deterministic=True)
-            observation, _reward, terminated, truncated, info = env.step(action)
-            steps_done = step + 1
-
-            spine = info["spine_observation"]
-            pitch = float(spine["base_orientation"]["pitch"])
-            worst_pitch = max(worst_pitch, abs(pitch))
-            speed_error_sum += abs(
-                float(spine["wheel_odometry"]["velocity"])
-                - episode["commanded_speed"]
-            )
-
-            at_limit = {"leg": False, "wheel": False}
-            for joint, servo in spine["servo"].items():
-                torque = abs(float(servo["torque"]))
-                kind = "wheel" if "wheel" in joint else "leg"
-                peak[kind] = max(peak[kind], torque)
-                square_sum[kind] += torque * torque
-                if torque >= TORQUE_LIMIT_NM[kind] * (1.0 - SATURATION_TOLERANCE):
-                    at_limit[kind] = True
-                if joint in JOINT_LIMITS_RAD:
-                    margin_rad = min(
-                        margin_rad,
-                        JOINT_LIMITS_RAD[joint] - abs(float(servo["position"])),
-                    )
-            for kind, hit in at_limit.items():
-                if hit:
-                    saturated_steps[kind] += 1
-
-            # Recovery is only meaningful once the shove has actually
-            # disturbed the robot. Counting from the moment of the push made
-            # every episode report "recovered" in about zero seconds, because
-            # the robot was still upright at the instant the force was applied.
-            if is_push and pushed_at is not None and recovery_step is None:
-                if not disturbed:
-                    if abs(pitch) >= eval_set.RECOVERY_PITCH_RAD:
-                        disturbed = True
-                    hold_run = 0
-                elif abs(pitch) < eval_set.RECOVERY_PITCH_RAD:
-                    hold_run += 1
-                    if hold_run >= hold_needed:
-                        recovery_step = step - hold_needed
-                else:
-                    hold_run = 0
-
-            if terminated or truncated:
-                # `truncated` is TimeLimit firing because the episode reached its
-                # step limit -- that is the robot COMPLETING the episode, not
-                # failing it. Only `terminated` is a fall: Upkie's env terminates
-                # when pitch passes its fall threshold.
-                #
-                # This read `fell = True` for both, so every policy that survived
-                # the full 20 s was recorded as having fallen and the `fell_over`
-                # violation fired on successful episodes. It did not reach the
-                # score -- survival_frac comes from steps_survived, which was
-                # correct -- but it was wrong in the record, and wrong in the
-                # direction that made our own candidates look worse.
-                fell = bool(terminated)
-                break
-
-        seconds = steps_done / reward_env.FREQUENCY
-        leg_steps = max(1, steps_done * 4)
-        wheel_steps = max(1, steps_done * 2)
-
-        record = {
-            "kind": episode["kind"],
-            "seed": episode["seed"],
-            "commanded_speed": episode["commanded_speed"],
-            "commanded_yaw_rate": 0.0,
-            "episode_seconds": round(seconds, 3),
-            "steps_survived": steps_done,
-            "step_limit": EVAL_STEPS,
-            "mean_speed_error": round(speed_error_sum / max(1, steps_done), 4),
-            "net_displacement_m": round(
-                float(spine["wheel_odometry"]["position"]), 4
-            ),
-            "heading_error_deg": 0.0,  # the Pendulum env has no yaw at all
-            "max_pitch_excursion_deg": round(math.degrees(worst_pitch), 3),
-            "closest_joint_margin_deg": round(math.degrees(margin_rad), 3),
-            "peak_torque_nm": {
-                "leg": round(peak["leg"], 4),
-                "wheel": round(peak["wheel"], 4),
-            },
-            "rms_torque_nm": {
-                "leg": round(math.sqrt(square_sum["leg"] / leg_steps), 4),
-                "wheel": round(math.sqrt(square_sum["wheel"] / wheel_steps), 4),
-            },
-            "saturated_steps": dict(saturated_steps),
-            "fell": fell,
-        }
-
+    for step in range(EVAL_STEPS):
         if is_push:
-            # Never knocked past the threshold at all: the shove did not
-            # disturb it, which is not the same as recovering from one.
-            recovered = recovery_step is not None
-            record["disturbed"] = disturbed
-            record["recovered"] = recovered
-            record["recovery_time_s"] = (
-                round((recovery_step - PUSH_STEP) / reward_env.FREQUENCY, 3)
-                if recovered
-                else round(seconds, 3)  # the episode cap, per INTERFACE.md
-            )
-        return record
+            if step == PUSH_STEP:
+                _apply_push(backend, eval_set.PUSH_NEWTONS)
+                pushed_at = step
+            elif step == PUSH_STEP + PUSH_HOLD_STEPS:
+                _apply_push(backend, 0.0)
+
+        action, _ = model.predict(observation, deterministic=True)
+        observation, _reward, terminated, truncated, info = env.step(action)
+        steps_done = step + 1
+
+        spine = info["spine_observation"]
+        pitch = float(spine["base_orientation"]["pitch"])
+        worst_pitch = max(worst_pitch, abs(pitch))
+        speed_error_sum += abs(
+            float(spine["wheel_odometry"]["velocity"])
+            - episode["commanded_speed"]
+        )
+
+        at_limit = {"leg": False, "wheel": False}
+        for joint, servo in spine["servo"].items():
+            torque = abs(float(servo["torque"]))
+            kind = "wheel" if "wheel" in joint else "leg"
+            peak[kind] = max(peak[kind], torque)
+            square_sum[kind] += torque * torque
+            if torque >= TORQUE_LIMIT_NM[kind] * (1.0 - SATURATION_TOLERANCE):
+                at_limit[kind] = True
+            if joint in JOINT_LIMITS_RAD:
+                margin_rad = min(
+                    margin_rad,
+                    JOINT_LIMITS_RAD[joint] - abs(float(servo["position"])),
+                )
+        for kind, hit in at_limit.items():
+            if hit:
+                saturated_steps[kind] += 1
+
+        # Recovery is only meaningful once the shove has actually
+        # disturbed the robot. Counting from the moment of the push made
+        # every episode report "recovered" in about zero seconds, because
+        # the robot was still upright at the instant the force was applied.
+        if is_push and pushed_at is not None and recovery_step is None:
+            if not disturbed:
+                if abs(pitch) >= eval_set.RECOVERY_PITCH_RAD:
+                    disturbed = True
+                hold_run = 0
+            elif abs(pitch) < eval_set.RECOVERY_PITCH_RAD:
+                hold_run += 1
+                if hold_run >= hold_needed:
+                    recovery_step = step - hold_needed
+            else:
+                hold_run = 0
+
+        if terminated or truncated:
+            # `truncated` is TimeLimit firing because the episode reached its
+            # step limit -- that is the robot COMPLETING the episode, not
+            # failing it. Only `terminated` is a fall: Upkie's env terminates
+            # when pitch passes its fall threshold.
+            #
+            # This read `fell = True` for both, so every policy that survived
+            # the full 20 s was recorded as having fallen and the `fell_over`
+            # violation fired on successful episodes. It did not reach the
+            # score -- survival_frac comes from steps_survived, which was
+            # correct -- but it was wrong in the record, and wrong in the
+            # direction that made our own candidates look worse.
+            fell = bool(terminated)
+            break
+
+    seconds = steps_done / reward_env.FREQUENCY
+    leg_steps = max(1, steps_done * 4)
+    wheel_steps = max(1, steps_done * 2)
+
+    record = {
+        "kind": episode["kind"],
+        "seed": episode["seed"],
+        "commanded_speed": episode["commanded_speed"],
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": round(seconds, 3),
+        "steps_survived": steps_done,
+        "step_limit": EVAL_STEPS,
+        "mean_speed_error": round(speed_error_sum / max(1, steps_done), 4),
+        "net_displacement_m": round(
+            float(spine["wheel_odometry"]["position"]), 4
+        ),
+        "heading_error_deg": 0.0,  # the Pendulum env has no yaw at all
+        "max_pitch_excursion_deg": round(math.degrees(worst_pitch), 3),
+        "closest_joint_margin_deg": round(math.degrees(margin_rad), 3),
+        "peak_torque_nm": {
+            "leg": round(peak["leg"], 4),
+            "wheel": round(peak["wheel"], 4),
+        },
+        "rms_torque_nm": {
+            "leg": round(math.sqrt(square_sum["leg"] / leg_steps), 4),
+            "wheel": round(math.sqrt(square_sum["wheel"] / wheel_steps), 4),
+        },
+        "saturated_steps": dict(saturated_steps),
+        "fell": fell,
+    }
+
+    if is_push:
+        # Never knocked past the threshold at all: the shove did not
+        # disturb it, which is not the same as recovering from one.
+        recovered = recovery_step is not None
+        record["disturbed"] = disturbed
+        record["recovered"] = recovered
+        record["recovery_time_s"] = (
+            round((recovery_step - PUSH_STEP) / reward_env.FREQUENCY, 3)
+            if recovered
+            else round(seconds, 3)  # the episode cap, per INTERFACE.md
+        )
+    return record
 
 
 def _apply_push(backend, newtons):
@@ -325,8 +335,23 @@ def train(
         wanted = eval_set.episodes()
         if eval_episodes is not None:
             wanted = wanted[:eval_episodes]
-        episodes = [_rollout_episode(model, env, wrapper, e) for e in wanted]
+        # R4: one fresh environment per scoring episode. All 20 used to run in
+        # the environment the policy was trained in, which let state cross
+        # episode boundaries and made a result depend on what ran before it.
+        # `reward_env.make_env` requires one environment open at a time, so the
+        # training environment is closed before the first episode opens.
         env.close()
+        episodes = []
+        for episode in wanted:
+            ep_env = reward_env.make_env(reward_fn, seed=seed, gui=False,
+                                         max_steps=EVAL_STEPS)
+            ep_wrapper = reward_env.find_reward_wrapper(ep_env)
+            try:
+                episodes.append(
+                    _rollout_episode(model, ep_env, ep_wrapper, episode)
+                )
+            finally:
+                ep_env.close()
         result["rollout"] = {
             "schema_version": SCHEMA_VERSION,
             "episodes": episodes,

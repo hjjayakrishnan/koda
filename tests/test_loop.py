@@ -123,6 +123,7 @@ def full_run():
                 "balance upright and drive forward at the commanded speed",
                 seed=seed,
                 out_dir=temporary,
+                source="fixtures",
             )
             check(f"seed {seed}: three rounds ran", len(record["rounds"]) == 3)
             check(f"seed {seed}: run.json written",
@@ -161,6 +162,7 @@ def rounds_improve():
             "balance upright and drive forward at the commanded speed",
             seed=1,
             out_dir=temporary,
+            source="fixtures",
         )
         best = []
         for round_record in record["rounds"]:

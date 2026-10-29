@@ -1,4 +1,15 @@
 {
+  "RETRACTION": {
+    "status": "RETRACTED -- DO NOT USE THESE NUMBERS",
+    "retracted_on": "2026-10-29",
+    "why": "Not reproducible. The saved policies do not produce the episode results recorded in this file. Checked by extracting the exact code that was live during this run (commit c4db21f) into a scratch tree and re-running it: the old code produces today's numbers, not the numbers in this file. All 17 committed policies were then run against the recorded episode 0 (task, seed 11, 0.3 m/s, recorded as 20.00 s and +7.425 m) and none came within 0.4 m. All 25 policy.zip files are distinct by sha256, so it is not a file mix-up either. Cause unknown.",
+    "also_wrong": [
+      "env.reset(seed=...) ignored the seed: all 5 seeds started the robot in an identical state, so '5 seeds x 3 speeds' is 3 distinct episodes repeated 5 times.",
+      "All 20 episodes ran in one physics environment, so state could cross episode boundaries.",
+      "The bill note below originally read 'nothing was spent' on a run that made 3 paid Nemotron calls. Corrected 2026-10-29."
+    ],
+    "what_is_still_usable": "The candidate reward functions in candidates/ and the raw model replies in prompts/ are real and unaffected. The scores, episode records and rankings are not."
+  },
   "schema_version": "2.0",
   "search_id": "seed_11",
   "robot": "upkie",
@@ -11449,7 +11460,9 @@
     "compute_seconds": 23656.2,
     "usd_compute": 0.0,
     "usd_tokens": 0.0,
-    "note": "stub trainer and fixture candidates: nothing was spent"
+    "note": "CORRECTED 2026-10-29. This previously read 'stub trainer and fixture candidates: nothing was spent', which was false: this run made 3 real calls to nvidia/nemotron-3-super-120b-a12b on Nebius Token Factory. usd_compute and usd_tokens are 0.0 because no cost was ever recorded, not because nothing was spent.",
+    "paid_model_calls": 3,
+    "cost_recorded": false
   },
   "model": "nvidia/nemotron-3-super-120b-a12b",
   "wall_seconds": 4410.36,

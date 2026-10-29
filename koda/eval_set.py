@@ -26,9 +26,13 @@ SPEEDS = (0.3, 0.6, 0.9)
 EPISODE_SECONDS = 20.0
 PUSH_SPEED = 0.6  # commanded speed during a push episode
 
-# The pre-registered shove. Fixed here, frozen at prereg-v1.
+# The shove. Set to 0 by the user on 2026-10-29: 25 N was 48% of this robot's
+# 5.34 kg weight, a 4.7 m/s^2 kick, chosen by an agent and never approved. It is
+# off until the robot can balance and drive, then the user picks a real number.
+# It was previously commented "pre-registered, frozen at prereg-v1". It was not
+# pre-registered and nothing was frozen.
 PUSH_AT_SECONDS = 5.0  # once the policy has settled
-PUSH_NEWTONS = 25.0
+PUSH_NEWTONS = 0.0
 PUSH_DURATION_S = 0.1
 PUSH_DIRECTION = "forward"
 
