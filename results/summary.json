@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0",
+  "goal": "balance upright and drive forward at the commanded speed",
+  "robot": "upkie",
+  "X": 1,
+  "seeds": [
+    11
+  ],
+  "candidates_per_round": 6,
+  "rounds": 3,
+  "training_runs": 18,
+  "candidate_source": "nemotron",
+  "trainer": "pybullet",
+  "jobs": 6,
+  "steps_per_candidate": 500000,
+  "winners": [
+    {
+      "seed": 11,
+      "final_winner": "r3c2",
+      "rounds_with_a_winner": 3
+    }
+  ],
+  "final_round_best_score": [
+    0.3106
+  ],
+  "spread": null,
+  "bill": {
+    "model_calls": 3,
+    "prompt_tokens": 5078,
+    "completion_tokens": 8846,
+    "compute_seconds": 23656.2
+  },
+  "note": null
+}

@@ -1,0 +1,188 @@
+
+
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward focused on upright posture and speed tracking."""
+    r = {}
+
+    # Penalize leaning away from upright (absolute pitch)
+    pitch_err = abs(state['pitch'])
+    r['pitch_penalty'] = -4.0 * pitch_err ** 2
+
+    # Reward maintaining contact with the ground (helps stability)
+    r['contact_bonus'] = 1.0 if state['contact'] > 0.5 else -1.0
+
+    # Track commanded forward speed
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed_tracking'] = -3.0 * speed_err ** 2
+
+    # Small penalty for rapid pitching motions (damping)
+    r['pitch_rate_penalty'] = -0.5 * state['pitch_rate'] ** 2
+
+    return r
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward that encourages natural gait and low effort while balancing."""
+    r = {}
+
+    # Upright reward using cosine – maximal when pitch≈0
+    r['upright_cosine'] = 2.0 * math.cos(state['pitch'])  # cos(0)=1 → reward ~2
+
+    # Penalize large joint velocities to avoid jerky motion
+    vel_sq = (state['left_hip_velocity'] ** 2 + state['right_hip_velocity'] ** 2 +
+              state['left_knee_velocity'] ** 2 + state['right_knee_velocity'] ** 2 +
+              state['left_wheel_velocity'] ** 2 + state['right_wheel_velocity'] ** 2)
+    r['velocity_penalty'] = -0.02 * vel_sq
+
+    # Encourage forward progress toward commanded speed (linear reward)
+    speed_diff = state['commanded_speed'] - state['ground_velocity']
+    # Positive when slower than command → reward for catching up
+    r['speed_progress'] = 1.5 * max(0.0, -speed_diff)  # reward only if lagging
+
+    # Slight bonus for maintaining wheel contact
+    r['contact_bonus'] = 0.5 if state['contact'] > 0.5 else 0.0
+
+    return r
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward based on exponential decay of errors and energy efficiency."""
+    r = {}
+
+    # Exponential penalty for pitch deviation (more forgiving near zero)
+    pitch_err = abs(state['pitch'])
+    r['pitch_exp'] = -1.0 * (math.exp(pitch_err) - 1.0)  # zero at err=0, grows fast
+
+    # Exponential penalty for speed tracking error
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed_exp'] = -0.8 * (math.exp(abs(speed_err)) - 1.0)
+
+    # Energy cost approximated by sum of squared torques
+    torque_sq = (state['left_hip_torque'] ** 2 + state['right_hip_torque'] ** 2 +
+                 state['left_knee_torque'] ** 2 + state['right_knee_torque'] ** 2 +
+                 state['left_wheel_torque'] ** 2 + state['right_wheel_torque'] ** 2)
+    r['effort'] = -0.0005 * torque_sq
+
+    # Contact encouragement (binary)
+    r['contact'] = 1.0 if state['contact'] > 0.5 else -0.5
+
+    return r
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward that combines pose stability, forward velocity, and yaw tracking."""
+    r = {}
+
+    # Pose stability: penalize both pitch and yaw deviations
+    r['pose_penalty'] = -2.0 * (state['pitch'] ** 2 + state['yaw'] ** 2)
+
+    # Forward velocity tracking (quadratic)
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed_tracking'] = -1.5 * speed_err ** 2
+
+    # Yaw rate tracking (encourage following commanded yaw rate)
+    yaw_rate_err = state['yaw_rate'] - state['commanded_yaw_rate']
+    r['yaw_rate_tracking'] = -0.5 * yaw_rate_err ** 2
+
+    # Damping term for joint accelerations (approximate via velocity change proxy)
+    # Use current joint velocities as a proxy for smoothness
+    joint_vel_sq = (state['left_hip_velocity'] ** 2 + state['right_hip_velocity'] ** 2 +
+                    state['left_knee_velocity'] ** 2 + state['right_knee_velocity'] ** 2 +
+                    state['left_wheel_velocity'] ** 2 + state['right_wheel_velocity'] ** 2)
+    r['smoothness'] = -0.01 * joint_vel_sq
+
+    # Contact bonus (keep wheels on ground)
+    r['contact'] = 0.8 if state['contact'] > 0.5 else 0.0
+
+    return r
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward emphasizing minimal control effort and upright stance."""
+    r = {}
+
+    # Upright stance: reward near-zero pitch using a narrow Gaussian
+    sigma_pitch = 0.2  # radians
+    r['upright_gauss'] = math.exp(-0.5 * (state['pitch'] / sigma_pitch) ** 2)
+
+    # Forward speed reward: piecewise linear tolerance band
+    tol = 0.05  # m/s tolerance around command
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    if abs(speed_err) <= tol:
+        r['speed_bonus'] = 1.0
+    else:
+        r['speed_bonus'] = -0.5 * (abs(speed_err) - tol)
+
+    # Effort cost: sum of absolute torques (L1 norm) to discourage large commands
+    effort = (abs(state['left_hip_torque']) + abs(state['right_hip_torque']) +
+              abs(state['left_knee_torque']) + abs(state['right_knee_torque']) +
+              abs(state['left_wheel_torque']) + abs(state['right_wheel_torque']))
+    r['effort_l1'] = -0.002 * effort
+
+    # Contact encouragement (small positive when touching)
+    r['contact'] = 0.3 if state['contact'] > 0.5 else 0.0
+
+    return r
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward combining stability, forward motion, and directional alignment."""
+    r = {}
+
+    # Stability term: penalize pitch and its rate (like a PD controller)
+    r['stability'] = -3.0 * state['pitch'] ** 2 - 0.8 * state['pitch_rate'] ** 2
+
+    # Forward progress: reward moving in the direction of commanded speed
+    # Use dot product of velocity and commanded direction (here 1‑D)
+    progress = state['ground_velocity'] * state['commanded_speed']
+    # Normalize by max possible speed to keep bounded; assume max 2 m/s
+    max_speed = 2.0
+    r['forward_progress'] = progress / max_speed  # positive when aligned
+
+    # Yaw alignment: keep yaw near zero (robot starts facing forward)
+    r['yaw_alignment'] = -1.0 * state['yaw'] ** 2
+
+    # Control smoothness: penalize high wheel accelerations approximated by wheel velocity change
+    # Use wheel velocities as a proxy; penalize large wheel speeds to avoid slipping
+    wheel_speed_sq = state['left_wheel_velocity'] ** 2 + state['right_wheel_velocity'] ** 2
+    r['wheel_speed_penalty'] = -0.005 * wheel_speed_sq
+
+    # Contact maintenance (binary reward)
+    r['contact'] = 0.5 if state['contact'] > 0.5 else -0.5
+
+    return r
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Simple baseline: prioritize staying upright and moving forward."""
+    r = {}
+
+    # Upright reward: negative quadratic pitch
+    r['upright'] = -5.0 * state['pitch'] ** 2
+
+    # Speed tracking: negative quadratic error
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed'] = -2.0 * state['commanded_speed'] * speed_err  # linear term encourages matching command
+    # Add a small negative quadratic to prevent runaway
+    r['speed'] -= 1.0 * speed_err ** 2
+
+    # Effort penalty: sum of squared motor torques
+    torque_sq = (state['left_hip_torque'] ** 2 + state['right_hip_torque'] ** 2 +
+                 state['left_knee_torque'] ** 2 + state['right_knee_torque'] ** 2 +
+                 state['left_wheel_torque'] ** 2 + state['right_wheel_torque'] ** 2)
+    r['effort'] = -0.001 * torque_sq
+
+    # Contact bonus (keep wheels on ground)
+    r['contact'] = 1.0 if state['contact'] > 0.5 else 0.0
+
+    return r
+### candidate
+--- end of six candidates ---

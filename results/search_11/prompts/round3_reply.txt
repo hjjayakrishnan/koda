@@ -1,0 +1,240 @@
+
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Reward based on upright orientation, speed tracking, contact maintenance,
+    and smooth actuator effort. Uses exponential decay for pitch and speed errors
+    to give soft penalties that never blow up."""
+    r = {}
+
+    # Upright bonus: cos(pitch) ∈ [0,1] when near vertical, negative when tipping
+    pitch = state['pitch']
+    r['upright'] = math.cos(pitch)  # max 1 at pitch=0, decreases smoothly
+
+    # Speed tracking reward: exponential penalty on error
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed_track'] = math.exp(-abs(speed_err))  # 1 at zero error, →0 as error grows
+
+    # Contact encouragement: binary bonus when wheels touch ground
+    r['contact'] = 1.0 if state['contact'] > 0.5 else 0.0
+
+    # Effort penalty: quadratic cost on all torques (legs + wheels)
+    torque_sq = (
+        state['left_hip_torque']**2 + state['right_hip_torque']**2 +
+        state['left_knee_torque']**2 + state['right_knee_torque']**2 +
+        state['left_wheel_torque']**2 + state['right_wheel_torque']**2
+    )
+    r['effort'] = -0.0005 * torque_sq
+
+    # Joint safety: soft barrier that blows up near ±1.5 rad (~86°)
+    joint_names = [
+        'left_hip_position', 'right_hip_position',
+        'left_knee_position', 'right_knee_position',
+        'left_wheel_position', 'right_wheel_position'
+    ]
+    barrier = 0.0
+    limit = 1.5
+    for jn in joint_names:
+        ang = abs(state.get(jn, 0.0))
+        if ang < limit:
+            # -log(1 - (ang/limit)^2) → 0 at centre, →∞ as ang→limit
+            barrier += -math.log(1.0 - (ang/limit)*(ang/limit))
+        else:
+            # If exceeded, assign a large negative constant
+            barrier += -10.0
+    r['joint_barrier'] = barrier
+
+    return r
+
+
+### candidate
+def compute_reward(state: dict, action: dict) -> dict:
+    """Linear‑quadratic hybrid: reward forward progress, penalise pitch/yaw
+    deviation, joint torque, and encourage persistent foot contact."""
+    r = {}
+
+    # Forward progress reward: proportional to ground velocity when moving
+    # in the desired direction (sign matches commanded_speed)
+    prog = state['ground_velocity'] * state['commanded_speed']
+    r['progress'] = 0.5 * prog if prog > 0.0 else 0.0   # only reward forward motion
+
+    # Pitch penalty: quadratic within ±0.3 rad, linear beyond
+    p = abs(state['pitch'])
+    if p <= 0.3:
+        r['pitch'] = -1.0 * (p*p)          # small quadratic cost
+    else:
+        r['pitch'] = -0.3*0.3 - 2.0*(p-0.3) # continue linearly steeper
+
+    # Yaw penalty: keep robot pointing forward (yaw≈0)
+    y = abs(state['yaw'])
+    r['yaw'] = -0.5 * (y*y)                # gentle quadratic
+
+    # Contact reward: shaped by how long contact persists (using contact flag)
+    r['contact'] = 0.8 if state['contact'] > 0.5 else -0.5
+
+    # Torque cost: weighted sum (legs cheaper than wheels)
+    torque_cost = (
+        0.01*(state['left_hip_torque']**2 + state['right_hip_torque']**2 +
+              state['left_knee_torque']**2 + state['right_knee_torque']**2) +
+        0.001*(state['left_wheel_torque']**2 + state['right_wheel_torque']**2)
+    )
+    r['torque'] = -torque_cost
+
+    return r
+
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """Survival‑shaped reward: stay alive (contact & upright) gives base reward,
+    speed tracking adds a bonus, and large torques or joint angles are punished
+    with a hyperbolic penalty that stays bounded."""
+    r = {}
+
+    # Survival bonus: 1.0 per step when robot has contact and is not tilted too far
+    upright_ok = abs(state['pitch']) < 0.4   # ~23°
+    contact_ok = state['contact'] > 0.5
+    r['survival'] = 1.0 if (upright_ok and contact_ok) else 0.0
+
+    # Speed tracking bonus: scaled tanh of error (max 0.5)
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed_bonus'] = 0.5 * math.tanh(-abs(speed_err) + 0.1)  # peaks near zero error
+
+    # Joint limit penalty: hyperbolic that grows slowly then steeply
+    joint_names = [
+        'left_hip_position', 'right_hip_position',
+        'left_knee_position', 'right_knee_position'
+    ]
+    joint_pen = 0.0
+    for jn in joint_names:
+        ang = abs(state.get(jn, 0.0))
+        # penalty = ang^2 / (1 + ang^2)  → 0 at 0, →1 as ang→∞
+        joint_pen += -(ang*ang) / (1.0 + ang*ang)
+    r['joint_hyperbolic'] = joint_pen
+
+    # Effort penalty: linear in absolute torque (less aggressive than quadratic)
+    torque_abs = (
+        abs(state['left_hip_torque']) + abs(state['right_hip_torque']) +
+        abs(state['left_knee_torque']) + abs(state['right_knee_torque']) +
+        abs(state['left_wheel_torque']) + abs(state['right_wheel_torque'])
+    )
+    r['effort_lin'] = -0.02 * torque_abs
+
+    return r
+
+
+### candidate
+def compute_reward(state: dict, action: dict) -> dict:
+    """Energy‑based reward: reward kinetic energy of forward motion,
+    penalise potential energy from pitching, and minimise control effort."""
+    r = {}
+
+    # Forward kinetic energy proxy: 0.5 * mass * v^2 (mass omitted → scaling)
+    v = state['ground_velocity']
+    r['forward_ke'] = 0.1 * (v * v) if v > 0.0 else 0.0   # only reward forward motion
+
+    # Potential energy from pitch: higher when leaned forward/backward
+    p = state['pitch']
+    r['potential_pitch'] = -0.05 * (p * p)   # penalises deviation from upright
+
+    # Yaw kinetic energy: reward small yaw rate (stability)
+    y_rate = state['yaw_rate']
+    r['yaw_stability'] = -0.02 * (y_rate * y_rate)
+
+    # Contact reward: encourage keeping at least one wheel on ground
+    r['contact'] = 0.3 if state['contact'] > 0.5 else -0.2
+
+    # Control effort: squared norm of action (what we command)
+    act_norm = (action.get('ground_velocity', 0.0)**2 +
+                action.get('yaw_velocity', 0.0)**2)
+    r['action_effort'] = -0.001 * act_norm
+
+    return r
+
+
+### candidate
+def compute_reward(state: dict, action: dict) -> dict:
+    """Multi‑objective shaping: combine exponential survival, cosine alignment,
+    and a smooth speed‑error penalty. All terms stay bounded and smooth."""
+    r = {}
+
+    # Exponential survival: decays with pitch error and loss of contact
+    pitch_err = abs(state['pitch'])
+    contact_factor = 1.0 if state['contact'] > 0.5 else 0.0
+    r['survival_exp'] = math.exp(-pitch_err * 3.0) * contact_factor
+
+    # Cosine alignment for forward direction: reward when velocity points forward
+    # (assumes forward is positive x). Use sign of velocity vs commanded speed.
+    vel = state['ground_velocity']
+    cmd = state['commanded_speed']
+    align = 1.0 if (vel * cmd) > 0.0 else -1.0
+    r['forward_align'] = 0.4 * align
+
+    # Speed error penalty: soft L1 with smoothing
+    speed_err = abs(vel - cmd)
+    r['speed_penalty'] = -0.6 * (speed_err / (1.0 + speed_err))
+
+    # Joint limit soft constraint: use logistic penalty
+    joint_names = [
+        'left_hip_position', 'right_hip_position',
+        'left_knee_position', 'right_knee_position'
+    ]
+    joint_pen = 0.0
+    for jn in joint_names:
+        ang = abs(state.get(jn, 0.0))
+        # penalty = -1 / (1 + exp(-k*(ang - a0)))  → 0 at small ang, → -1 at large
+        joint_pen += -1.0 / (1.0 + math.exp(-5.0 * (ang - 0.8)))
+    r['joint_logistic'] = joint_pen
+
+    # Small torque cost to discourage excessive actuation
+    torque_sq = (
+        state['left_hip_torque']**2 + state['right_hip_torque']**2 +
+        state['left_knee_torque']**2 + state['right_knee_torque']**2 +
+        state['left_wheel_torque']**2 + state['right_wheel_torque']**2
+    )
+    r['torque_cost'] = -0.0004 * torque_sq
+
+    return r
+
+
+### candidate
+def compute_reward(state: dict, action: dict) -> dict:
+    """Sparse‑dense hybrid: give a large positive reward when the robot
+    is upright, moving forward, and in contact; otherwise give small
+    shaping gradients to guide learning."""
+    r = {}
+
+    # Dense shaping: negative quadratic costs for pitch and speed error
+    p = state['pitch']
+    r['pitch_shape'] = -0.8 * (p * p)
+
+    speed_err = state['ground_velocity'] - state['commanded_speed']
+    r['speed_shape'] = -0.5 * (speed_err * speed_err)
+
+    # Sparse bonus: +1.0 only when all three conditions are met
+    upright = abs(state['pitch']) < 0.2          # ~11°
+    moving_forward = state['ground_velocity'] * state['commanded_speed'] > 0.0
+    contact_ok = state['contact'] > 0.5
+    if upright and moving_forward and contact_ok:
+        r['sparse_bonus'] = 1.0
+    else:
+        r['sparse_bonus'] = 0.0
+
+    # Contact maintenance: small reward for staying in touch
+    r['contact_keep'] = 0.2 if state['contact'] > 0.5 else -0.1
+
+    # Effort penalty: linear in absolute joint torques (legs) + wheel torques
+    leg_torque = (
+        abs(state['left_hip_torque']) + abs(state['right_hip_torque']) +
+        abs(state['left_knee_torque']) + abs(state['right_knee_torque'])
+    )
+    wheel_torque = (
+        abs(state['left_wheel_torque']) + abs(state['right_wheel_torque'])
+    )
+    r['effort'] = -0.01 * leg_torque - 0.002 * wheel_torque
+
+    return r
+</response>
