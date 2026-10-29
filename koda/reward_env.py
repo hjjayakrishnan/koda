@@ -32,6 +32,16 @@ from koda import state as state_mod
 FREQUENCY = 200.0
 DT = 1.0 / FREQUENCY
 
+# Spread of the random starting tilt, in radians. Chosen by the user on
+# 2026-10-29. Without it `env.reset(seed=...)` ignored the seed completely:
+# every episode began at exactly [0, 0, 0, 0, setpoint], so the 20-episode
+# evaluation set -- "5 seeds x 3 speeds" -- was 3 distinct episodes repeated
+# five times, and no result in this project carried any variance information.
+# 0.02 rad is about 1.1 degrees. Upkie's own domain randomisation does the
+# sampling, from the environment's seeded generator, so a seed still
+# reproduces exactly.
+INIT_PITCH_RAD = 0.02
+
 
 class RewardWrapper(gym.Wrapper):
     r"""Wrap the Pendulum env so a reward function decides the reward."""
@@ -105,11 +115,16 @@ def make_env(reward_fn, seed=None, gui=False, fixed_speed=None, max_steps=None,
              real_time=None):
     """One wrapped environment, ready to train or roll out in.
 
-    Open ONE of these at a time. PyBullet's module-level `disconnect()` defaults
-    to physics client 0, so closing a second environment can kill the first
-    one's physics server out from under it -- which shows up later as
-    `pybullet.error: getJointState failed`. Reuse the env and change
-    `fixed_speed` between episodes rather than building a new one.
+    Open ONE of these AT A TIME. PyBullet's module-level `disconnect()` defaults
+    to physics client 0, so two open at once means closing one can kill the
+    other's physics server -- which shows up later as `pybullet.error:
+    getJointState failed`. Opening and closing them in sequence is fine and is
+    what `trainer_pybullet.train` does: one fresh environment per scoring
+    episode, closed before the next opens.
+
+    Do NOT reuse one environment across scoring episodes. That is what this
+    docstring used to recommend, and it let state cross episode boundaries --
+    a leaked external force made a result depend on what had run before it.
 
     `real_time` controls whether the environment sleeps to hold the control
     frequency against the wall clock. Upkie defaults it to True, which is right
@@ -135,6 +150,7 @@ def make_env(reward_fn, seed=None, gui=False, fixed_speed=None, max_steps=None,
         regulate_frequency=real_time,
         frequency_checks=False,
     )
+    env.unwrapped.update_init_rand(pitch=INIT_PITCH_RAD)
     env = RewardWrapper(env, reward_fn, fixed_speed=fixed_speed)
     if max_steps:
         env = gym.wrappers.TimeLimit(env, max_episode_steps=max_steps)
