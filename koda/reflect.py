@@ -102,6 +102,19 @@ def reflect(trainer_result: dict, score_result: dict | None) -> str:
         f"{m['peak_torque_frac_leg'] * 100:.0f}% of the leg motors'"
     )
 
+    # Added 2026-10-29. Peak torque alone hid the thrashing: a policy can touch
+    # the limit once and read the same as one that sits on it. This is the share
+    # of the whole episode spent pinned there. Measured: the best candidate of
+    # the first search sat at the limit on 96% of steps while the hand-built MPC
+    # controller does it on 7%. The model is told the number, not how the number
+    # is scored -- it still never sees `scorer.py`.
+    saturated = m.get("saturated_step_frac_wheel")
+    if saturated is not None:
+        lines.append(
+            f"    wheel motors sat pinned at that limit for "
+            f"{saturated * 100:.0f}% of every step taken"
+        )
+
     if score_result["violations"]:
         lines.append(
             "    limits exceeded: " + ", ".join(score_result["violations"])

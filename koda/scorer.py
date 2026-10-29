@@ -43,6 +43,7 @@ FREQUENCY = 200.0
 
 ACTIVE_MEASUREMENTS = (
     "survival_frac",
+    "saturated_step_frac_wheel",
     "mean_speed_error",
     "displacement_frac",
     "heading_error_deg",
@@ -264,18 +265,84 @@ def _task_score(episodes):
     speed_part = math.exp(-(speed_error * speed_error) / SPEED_SIGMA)
     heading_factor = max(0.0, 1.0 - worst_heading / HEADING_SCALE_DEG)
 
+    # Staying upright is not the same as being stable, and until 2026-10-29 this
+    # scorer treated them as the same thing. `survival_frac` counts steps spent
+    # not-fallen, so a robot convulsing at its torque limit scored a perfect
+    # 1.000 on it. The user watched two policies in the GUI and said plainly
+    # that one was "very unstable even though it stays upright" and that the
+    # "violent jittering should not happen". The measurement already existed and
+    # was being thrown away:
+    #
+    #   share of control steps with a wheel motor pinned at its rated limit
+    #     r3c2, no ramp     0.9586      <- the one that looked violent
+    #     r3c2, ramped      0.6965
+    #     MPC, hand-built   0.0718      <- the one that looks like control
+    #
+    # So smoothness joins survival as a GATE rather than becoming another
+    # additive share -- his instruction was "stability and then moving should be
+    # rewarded. Not independent." A thrashing robot cannot buy back points with
+    # distance, exactly as a falling one cannot.
+    #
+    # The form is `1 - saturation` deliberately: it introduces no new constant
+    # to tune, so there is no invented number here (R6). None means the rollout
+    # predates the `saturated_steps` field, and gets 1.0 rather than a guess --
+    # the same rule `_saturated_fractions` already follows.
+    # Named for what it literally is -- the share of control steps in which the
+    # wheel motors were NOT pinned at their rated torque limit. It is deliberately
+    # not called anything like "smoothness": `tests/test_scorer.py` keeps a list
+    # of reward-shaping words the grader must never measure, because those are
+    # terms the model is supposed to discover for itself. A motor's rated limit
+    # is hardware, already measured and already a violation flag, so pricing it
+    # in is fair game. Inventing a smoothness metric here would not be.
+    wheel_saturation = _saturated_fractions(episodes)["wheel"]
+    torque_headroom = (
+        1.0 if wheel_saturation is None
+        else max(0.0, 1.0 - wheel_saturation)
+    )
+
     if displacement is None:
         # Every episode here was stationary, so displacement is undefined and
         # the task is entirely "match the commanded speed", which was zero.
         task = speed_part
     else:
         displacement_part = min(1.0, max(0.0, displacement))
+        # A WEIGHTED GEOMETRIC MEAN, not a weighted average.
+        #
+        # It was `0.55 * speed + 0.45 * displacement` until 2026-10-29. An
+        # average lets one term be bought with the other, so a robot that never
+        # moved still banked 0.55 of the speed term: r1c6 drifted BACKWARD
+        # 0.51 m, covered -7% of the commanded ground, and came first at 0.1064
+        # once thrashing was penalised. "Stand still" beat "drive 6 m". The user
+        # had already had this out once -- survival used to be a 0.45 additive
+        # share for the same reason -- and his instruction was that stability
+        # gates the score and movement then earns it: "Not inpedependent."
+        #
+        # With a^0.55 * b^0.45 the product is zero if EITHER term is zero, so
+        # going nowhere cannot be compensated. And because the weights sum to 1
+        # it stays on the same scale as the average it replaces -- by AM-GM,
+        #
+        #     a**0.55 * b**0.45  <=  0.55*a + 0.45*b     equality iff a == b
+        #
+        # so it never inflates a score and never collapses one either. The raw
+        # product a*b, which was the obvious first idea, is a DIFFERENT scale
+        # and crushed MPC from 0.5486 to 0.2992. Measured, same rollouts:
+        #
+        #                 metres   speed_acc  dist_cov    average  geometric
+        #   MPC            +6.34      0.7257    0.4533     0.5486     0.5341
+        #   r2c3           +2.38      0.3585    0.1748     0.1003     0.0943
+        #   r3c2_ramped    +5.44      0.0751    0.4510     0.0450     0.0310
+        #   r3c2           +6.00      0.0087    0.6779     0.0127     0.0026
+        #   r1c4           +0.01      0.2380    0.0000     0.0328     0.0000
+        #   r1c6           -0.51      0.2066    0.0000     0.1064     0.0000
+        #
+        # No new constant: the same 0.55 and 0.45 move from coefficients to
+        # exponents, and SPEED_SIGMA stays at legged_gym's 0.25.
         task = (
-            WEIGHTS["speed"] * speed_part
-            + WEIGHTS["displacement"] * displacement_part
+            speed_part ** WEIGHTS["speed"]
+            * displacement_part ** WEIGHTS["displacement"]
         )
 
-    return round(survival * task * heading_factor, 4)
+    return round(survival * torque_headroom * task * heading_factor, 4)
 
 
 def score(rollout: dict, candidate_id: str = "candidate") -> dict:

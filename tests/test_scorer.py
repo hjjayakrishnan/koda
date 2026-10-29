@@ -19,6 +19,7 @@ before any scored run.
 
 import inspect
 import sys
+import math
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -413,6 +414,78 @@ def tracking_matches_the_published_form():
         )
 
 
+def standing_still_cannot_be_bought_back():
+    """A robot that goes nowhere scores zero, however smooth and upright."""
+    print("Going nowhere cannot be paid for with anything else")
+
+    # Perfectly upright, perfectly smooth, never leaves the spot.
+    still = rollout([
+        episode(seed=s, commanded_speed=sp, net_displacement_m=0.0,
+                mean_speed_error=sp, saturated_steps={"leg": 0, "wheel": 0})
+        for s in (11, 23, 37) for sp in (0.3, 0.6, 0.9)
+    ])
+    verdict = scorer.score(still, "stationary")
+    check("a robot that never moves scores exactly 0",
+          verdict["score"] == 0.0, f"got {verdict['score']}")
+
+    # Drifting BACKWARD is not better than standing still.
+    backward = rollout([
+        episode(seed=s, commanded_speed=sp, net_displacement_m=-0.5,
+                mean_speed_error=sp, saturated_steps={"leg": 0, "wheel": 0})
+        for s in (11, 23, 37) for sp in (0.3, 0.6, 0.9)
+    ])
+    check("a robot that drifts backward scores exactly 0",
+          scorer.score(backward, "backward")["score"] == 0.0)
+
+
+def thrashing_is_punished():
+    """Same job done, but one slams the wheels at their limit the whole time."""
+    print("Sitting on the torque limit costs real score")
+
+    def at_limit(fraction):
+        return rollout([
+            episode(seed=s, commanded_speed=sp,
+                    net_displacement_m=sp * 20.0 * 0.5,
+                    mean_speed_error=0.3,
+                    saturated_steps={"leg": 0,
+                                     "wheel": int(4000 * fraction)})
+            for s in (11, 23, 37) for sp in (0.3, 0.6, 0.9)
+        ])
+
+    smooth = scorer.score(at_limit(0.05), "smooth")["score"]
+    rough = scorer.score(at_limit(0.95), "rough")["score"]
+    check("identical driving, 95% saturated scores below 5% saturated",
+          rough < smooth, f"{rough} vs {smooth}")
+    check("the gap is large, not cosmetic", rough < smooth * 0.2,
+          f"{rough} vs {smooth}")
+    check("saturation is one of the scored measurements",
+          "saturated_step_frac_wheel" in scorer.ACTIVE_MEASUREMENTS)
+
+
+def geometric_mean_never_inflates():
+    """AM-GM: the geometric mean cannot exceed the average it replaced."""
+    print("The geometric mean never scores higher than the old average")
+    worst = 0.0
+    for speed_error in (0.05, 0.3, 0.6, 1.0):
+        for fraction in (0.1, 0.3, 0.6, 1.0):
+            roll = rollout([
+                episode(seed=s, commanded_speed=sp,
+                        net_displacement_m=sp * 20.0 * fraction,
+                        mean_speed_error=speed_error,
+                        heading_error_deg=0.0,
+                        saturated_steps={"leg": 0, "wheel": 0})
+                for s in (11, 23, 37) for sp in (0.3, 0.6, 0.9)
+            ])
+            got = scorer.score(roll, "x")["score"]
+            speed_part = math.exp(-(speed_error ** 2) / scorer.SPEED_SIGMA)
+            average = (scorer.WEIGHTS["speed"] * speed_part
+                       + scorer.WEIGHTS["displacement"] * min(1.0, fraction))
+            worst = max(worst, got - average)
+            check(f"error {speed_error}, distance {fraction}: "
+                  f"{got:.4f} <= {average:.4f}", got <= average + 1e-9)
+    check("no case inflated the score", worst <= 1e-9, f"worst excess {worst}")
+
+
 def real_cheaters_parse():
     print("The three cheat files exist and are valid reward functions")
     from koda import gate1
@@ -439,5 +512,8 @@ if __name__ == "__main__":
     falling_early_does_not_hide_bad_driving()
     tracking_has_no_dead_zone()
     tracking_matches_the_published_form()
+    standing_still_cannot_be_bought_back()
+    thrashing_is_punished()
+    geometric_mean_never_inflates()
     real_cheaters_parse()
     print(f"\n{PASSED} checks passed")

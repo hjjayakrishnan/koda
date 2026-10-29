@@ -43,3 +43,6 @@ runs/*
 !runs/seed*/
 !runs/seed*/*/
 !runs/seed*/*/policy.zip
+
+# Scratch explanation written for the user, not part of the project
+block_diagram.md
