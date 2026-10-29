@@ -24,6 +24,15 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="run the reward search")
+    run.add_argument(
+        "--run-id",
+        required=True,
+        help="a name for THIS search, e.g. search_12. Policies go to "
+             "runs/<run-id>/search_<seed>/seed<seed>/, the record to "
+             "out/<run-id>/. Required, and the run refuses to start if that "
+             "name is already used: candidate ids are r1c1..r3c6 in every "
+             "search, so without it a second search overwrites the first.",
+    )
     run.add_argument("--robot", default="upkie", help="which robot (only upkie so far)")
     run.add_argument("--goal", default=GOAL, help="the goal, in one sentence")
     run.add_argument("--rounds", type=int, default=3)
@@ -99,6 +108,7 @@ def main(argv=None) -> int:
 
     summary = orchestrator.search_all(
         goal=args.goal,
+        run_id=args.run_id,
         seeds=seeds,
         robot=args.robot,
         rounds=args.rounds,

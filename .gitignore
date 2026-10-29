@@ -43,6 +43,13 @@ runs/*
 !runs/seed*/
 !runs/seed*/*/
 !runs/seed*/*/policy.zip
+# Since --run-id, a search nests one level deeper:
+#   runs/<run-id>/seed<N>/<candidate>/policy.zip
+!runs/*/
+!runs/*/seed*/
+!runs/*/seed*/*/
+runs/*/seed*/*/*
+!runs/*/seed*/*/policy.zip
 
 # Scratch explanation written for the user, not part of the project
 block_diagram.md

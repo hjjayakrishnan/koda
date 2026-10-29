@@ -223,6 +223,7 @@ def run(
     out_dir: str = "out",
     seed: int = 0,
     search_id: str = "A_healthy_upkie",
+    run_id: str | None = None,
     human_baseline_path: str | None = None,
     source: str = "fixtures",
     trainer_name: str = "pybullet",
@@ -231,11 +232,27 @@ def run(
 ) -> dict:
     """Run the whole search. Returns the run record and writes it to disk."""
     trainer = _pick_trainer(trainer_name)
-    # Candidate ids repeat across searches -- seed 11 and seed 23 both produce
-    # an "r1c3" -- so every search gets its own policy directory. Without this
-    # the second search silently overwrites the first one's policies.
-    run_dir = f"runs/seed{seed}"
-    out = Path(out_dir)
+    # Candidate ids repeat across EVERY search: round 1 candidate 3 is "r1c3"
+    # whatever search it came from. Separating by seed alone was not enough --
+    # two searches at the same seed wrote the same files, so the second silently
+    # destroyed the first. `run_id` names the search and nests both the policies
+    # and the record under it, and the guard below refuses to start rather than
+    # overwrite. Left as None only for the tests, which run in a temp directory.
+    if run_id:
+        run_dir = f"runs/{run_id}/seed{seed}"
+        out = Path(out_dir) / run_id / f"seed{seed}"
+        for path in (Path(run_dir), out):
+            if path.exists() and any(path.iterdir()):
+                raise FileExistsError(
+                    f"{path} already exists and is not empty. Refusing to start:"
+                    f" a search writes r1c1..r{rounds}c{candidates}, the same"
+                    f" names every time, so this would overwrite whatever is"
+                    f" there. Pick a different --run-id, or move that directory"
+                    f" aside first."
+                )
+    else:
+        run_dir = f"runs/seed{seed}"
+        out = Path(out_dir)
     (out / "prompts").mkdir(parents=True, exist_ok=True)
     run_path = out / "run.json"
     started = time.time()
@@ -373,6 +390,7 @@ def run(
 def search_all(
     goal: str,
     seeds=(11,),
+    run_id: str | None = None,
     robot: str = "upkie",
     rounds: int = 3,
     candidates: int = 6,
@@ -412,9 +430,10 @@ def search_all(
             robot=robot,
             rounds=rounds,
             candidates=candidates,
-            out_dir=str(Path(out_dir) / f"search_{seed}"),
+            out_dir=out_dir,
             seed=seed,
             search_id=f"seed_{seed}",
+            run_id=run_id if run_id else f"search_{seed}",
             human_baseline_path=human_baseline_path,
             source=source,
             trainer_name=trainer_name,
