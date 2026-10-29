@@ -296,10 +296,17 @@ def blind_spots_are_preserved():
 
 def push_handling():
     print("Push episodes: non-recoveries are counted, never averaged in")
+    # `disturbed=True` on every push episode here: the trainer always writes
+    # this field, and a robot cannot have recovered without first having been
+    # knocked off upright. These fixtures predated the field. Since defect 9
+    # the scorer gates recovery on it, so leaving it out described a rollout
+    # that cannot physically occur.
     episodes = [episode()]
-    episodes.append(episode(kind="push", recovered=True, recovery_time_s=1.2))
-    episodes.append(episode(kind="push", recovered=True, recovery_time_s=1.8))
-    episodes.append(episode(kind="push", recovered=False,
+    episodes.append(episode(kind="push", disturbed=True, recovered=True,
+                            recovery_time_s=1.2))
+    episodes.append(episode(kind="push", disturbed=True, recovered=True,
+                            recovery_time_s=1.8))
+    episodes.append(episode(kind="push", disturbed=True, recovered=False,
                             recovery_time_s=20.0))
     result = scorer.score(rollout(episodes), "pushed")
     check("recovery_time_s averages only the recoveries (1.5)",
@@ -309,7 +316,8 @@ def push_handling():
           result["measurements"]["non_recovery_count"] == 1)
 
     none_recovered = [episode()] + [
-        episode(kind="push", recovered=False, recovery_time_s=20.0)
+        episode(kind="push", disturbed=True, recovered=False,
+                recovery_time_s=20.0)
     ]
     result = scorer.score(rollout(none_recovered), "never")
     check("never recovering is flagged",
@@ -486,6 +494,54 @@ def geometric_mean_never_inflates():
     check("no case inflated the score", worst <= 1e-9, f"worst excess {worst}")
 
 
+def recovery_needs_an_actual_disturbance():
+    """Defect 9: the shove flag must not fire when nothing shoved the robot."""
+    print("never_recovered_from_push needs something to have recovered FROM")
+
+    def with_push(**over):
+        base = dict(kind="push", commanded_speed=0.6,
+                    saturated_steps={"leg": 0, "wheel": 0})
+        base.update(over)
+        return [episode(seed=s, net_displacement_m=6.0, **base)
+                for s in (11, 23, 37, 53, 71)]
+
+    task = [episode(seed=s, commanded_speed=sp, net_displacement_m=sp * 20.0 * 0.5,
+                    saturated_steps={"leg": 0, "wheel": 0})
+            for s in (11, 23, 37) for sp in (0.3, 0.6, 0.9)]
+
+    # Nothing ever crossed the pitch threshold -- there was no shove at all.
+    calm = scorer.score(rollout(task + with_push(disturbed=False,
+                                                 recovered=False)), "calm")
+    check("no disturbance means no never_recovered_from_push violation",
+          "never_recovered_from_push" not in calm["violations"],
+          str(calm["violations"]))
+    check("non_recovery_count is 0, not the number of push episodes",
+          calm["measurements"]["non_recovery_count"] == 0,
+          str(calm["measurements"]["non_recovery_count"]))
+    check("disturbed_count reports 0",
+          calm["measurements"]["disturbed_count"] == 0)
+
+    # Genuinely knocked over and never came back: the flag MUST still fire.
+    knocked = scorer.score(rollout(task + with_push(disturbed=True,
+                                                    recovered=False)), "knocked")
+    check("a real disturbance with no recovery still violates",
+          "never_recovered_from_push" in knocked["violations"],
+          str(knocked["violations"]))
+    check("non_recovery_count counts all 5", 
+          knocked["measurements"]["non_recovery_count"] == 5)
+
+    # Knocked over and recovered: no violation.
+    ok = scorer.score(rollout(task + with_push(disturbed=True, recovered=True,
+                                               recovery_time_s=1.4)), "ok")
+    check("disturbed then recovered does not violate",
+          "never_recovered_from_push" not in ok["violations"],
+          str(ok["violations"]))
+
+    check("the three cases do not change the score",
+          calm["score"] == knocked["score"] == ok["score"],
+          f"{calm['score']} {knocked['score']} {ok['score']}")
+
+
 def real_cheaters_parse():
     print("The three cheat files exist and are valid reward functions")
     from koda import gate1
@@ -515,5 +571,6 @@ if __name__ == "__main__":
     standing_still_cannot_be_bought_back()
     thrashing_is_punished()
     geometric_mean_never_inflates()
+    recovery_needs_an_actual_disturbance()
     real_cheaters_parse()
     print(f"\n{PASSED} checks passed")

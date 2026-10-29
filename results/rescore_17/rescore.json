@@ -5,7 +5,7 @@
     "code_sha_short": "447f8c7",
     "dirty": false,
     "scorer": "koda-v1",
-    "scorer_sha": "333b1fa",
+    "scorer_sha": "c2c2e7d",
     "init_pitch_rad": 0.02,
     "push_newtons": 0.0,
     "episodes_per_candidate": 20,
@@ -41,7 +41,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0343,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 8,
           "episode_count": 20
         },
@@ -54,10 +55,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -647,7 +647,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0776,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 18,
           "episode_count": 20
         },
@@ -660,10 +661,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -1253,7 +1253,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0391,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 15,
           "episode_count": 20
         },
@@ -1266,10 +1267,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -1859,7 +1859,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0535,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 17,
           "episode_count": 20
         },
@@ -1872,10 +1873,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -2465,7 +2465,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.4627,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 1,
+          "disturbed_count": 1,
           "fell_count": 18,
           "episode_count": 20
         },
@@ -2481,7 +2482,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -3071,7 +3072,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0118,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 1,
+          "disturbed_count": 1,
           "fell_count": 3,
           "episode_count": 20
         },
@@ -3087,7 +3089,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -3678,6 +3680,7 @@
           "saturated_step_frac_wheel": 0.6185,
           "recovery_time_s": 4.27,
           "non_recovery_count": 0,
+          "disturbed_count": 5,
           "fell_count": 5,
           "episode_count": 20
         },
@@ -3692,7 +3695,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -4283,6 +4286,7 @@
           "saturated_step_frac_wheel": 0.9424,
           "recovery_time_s": null,
           "non_recovery_count": 5,
+          "disturbed_count": 5,
           "fell_count": 20,
           "episode_count": 20
         },
@@ -4298,7 +4302,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -4889,6 +4893,7 @@
           "saturated_step_frac_wheel": 0.1394,
           "recovery_time_s": null,
           "non_recovery_count": 5,
+          "disturbed_count": 5,
           "fell_count": 18,
           "episode_count": 20
         },
@@ -4904,7 +4909,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -5494,7 +5499,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.8586,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 20,
           "episode_count": 20
         },
@@ -5507,10 +5513,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -6100,7 +6105,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0819,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 2,
+          "disturbed_count": 2,
           "fell_count": 20,
           "episode_count": 20
         },
@@ -6116,7 +6122,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -6707,6 +6713,7 @@
           "saturated_step_frac_wheel": 0.9707,
           "recovery_time_s": 6.519,
           "non_recovery_count": 1,
+          "disturbed_count": 5,
           "fell_count": 11,
           "episode_count": 20
         },
@@ -6721,7 +6728,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -7311,7 +7318,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.7061,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 20,
           "episode_count": 20
         },
@@ -7324,10 +7332,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -7918,6 +7925,7 @@
           "saturated_step_frac_wheel": 0.9586,
           "recovery_time_s": 1.299,
           "non_recovery_count": 0,
+          "disturbed_count": 5,
           "fell_count": 0,
           "episode_count": 20
         },
@@ -7931,7 +7939,7 @@
         "violations": [
           "wheel_torque_exceeded"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -8521,7 +8529,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.4966,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 0,
+          "disturbed_count": 0,
           "fell_count": 20,
           "episode_count": 20
         },
@@ -8534,10 +8543,9 @@
         ],
         "violations": [
           "wheel_torque_exceeded",
-          "fell_over",
-          "never_recovered_from_push"
+          "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -9127,7 +9135,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.8577,
           "recovery_time_s": 0.275,
-          "non_recovery_count": 4,
+          "non_recovery_count": 2,
+          "disturbed_count": 3,
           "fell_count": 20,
           "episode_count": 20
         },
@@ -9142,7 +9151,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -9732,7 +9741,8 @@
           "saturated_step_frac_leg": 0.0,
           "saturated_step_frac_wheel": 0.0791,
           "recovery_time_s": null,
-          "non_recovery_count": 5,
+          "non_recovery_count": 4,
+          "disturbed_count": 4,
           "fell_count": 15,
           "episode_count": 20
         },
@@ -9748,7 +9758,7 @@
           "fell_over",
           "never_recovered_from_push"
         ],
-        "scorer_sha": "333b1fa"
+        "scorer_sha": "c2c2e7d"
       },
       "rollout": {
         "schema_version": "2.0",

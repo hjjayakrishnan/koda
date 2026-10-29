@@ -21,7 +21,8 @@
     "saturated_step_frac_leg": 0.0,
     "saturated_step_frac_wheel": 0.6965,
     "recovery_time_s": 1.508,
-    "non_recovery_count": 2,
+    "non_recovery_count": 0,
+    "disturbed_count": 3,
     "fell_count": 10,
     "episode_count": 20
   },
@@ -36,13 +37,13 @@
     "wheel_torque_exceeded",
     "fell_over"
   ],
-  "scorer_sha": "333b1fa",
+  "scorer_sha": "c2c2e7d",
   "provenance": {
     "code_sha": "447f8c7b28c75818a2b42afb036b8a2b61572b21",
     "code_sha_short": "447f8c7",
     "dirty": false,
     "scorer": "koda-v1",
-    "scorer_sha": "333b1fa",
+    "scorer_sha": "c2c2e7d",
     "init_pitch_rad": 0.02,
     "push_newtons": 0.0,
     "regraded": "2026-10-29",

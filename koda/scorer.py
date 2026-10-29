@@ -361,7 +361,23 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
     leg_frac = peak_leg / state_mod.LEG_TORQUE_LIMIT_NM
     wheel_frac = peak_wheel / state_mod.WHEEL_TORQUE_LIMIT_NM
 
-    recovered = [e for e in push if e.get("recovered")]
+    # DEFECT 9, fixed 2026-10-29. `never_recovered_from_push` used to fire
+    # whenever a push episode existed and none reported recovery. Once the user
+    # set PUSH_NEWTONS to 0.0 there was no shove to recover FROM, so the flag
+    # stopped meaning what its name says: what trips `disturbed` in
+    # `trainer_pybullet.py:203` is the pitch crossing RECOVERY_PITCH_RAD, and
+    # with no shove the only thing that crosses it is the robot's own wobble.
+    # The flag then fired on steady candidates, which never wobble that far, and
+    # cleared on unsteady ones that wobble across and come back. Backwards.
+    #
+    # Gated on `disturbed` rather than on the push force, because this file
+    # grades from the rollout's physical measurements and must not read the
+    # eval-set configuration -- importing PUSH_NEWTONS here would make the
+    # grade depend on a constant instead of on what the robot actually did.
+    # A rollout predating the field reports None, which is falsy, so it counts
+    # as not disturbed rather than inventing a verdict.
+    disturbed = [e for e in push if e.get("disturbed")]
+    recovered = [e for e in disturbed if e.get("recovered")]
     fell = [e for e in episodes if e.get("fell")]
 
     # Two numbers, not one. `peak` is the highest torque seen and is what the
@@ -407,7 +423,11 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
             if recovered
             else None
         ),
-        "non_recovery_count": len(push) - len(recovered),
+        # Of the shoves that actually moved the robot, how many it never came
+        # back from. Zero when nothing disturbed it -- that is "no shove
+        # happened", not "failed five times".
+        "non_recovery_count": len(disturbed) - len(recovered),
+        "disturbed_count": len(disturbed),
         "fell_count": len(fell),
         "episode_count": len(episodes),
     }
@@ -421,7 +441,7 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
         violations.append("joint_limit_hit")
     if fell:
         violations.append("fell_over")
-    if push and not recovered:
+    if disturbed and not recovered:
         violations.append("never_recovered_from_push")
 
     per_speed = {}

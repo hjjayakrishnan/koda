@@ -82,12 +82,24 @@ def reflect(trainer_result: dict, score_result: dict | None) -> str:
         f"{m['closest_joint_margin_deg']:.1f} degrees"
     )
 
-    if m["recovery_time_s"] is None:
-        lines.append("    never recovered from any of the 5 shoves")
-    else:
-        recovered = 5 - m["non_recovery_count"]
+    disturbed = m.get("disturbed_count")
+    if disturbed == 0:
+        # Defect 9. With the shove at 0 N nothing pushes the robot, so saying
+        # "never recovered from any of the 5 shoves" was reporting a failure
+        # that never had the chance to happen.
         lines.append(
-            f"    recovered from {recovered} of 5 shoves, taking "
+            "    nothing ever knocked it far enough off upright to count as a "
+            "disturbance"
+        )
+    elif m["recovery_time_s"] is None:
+        lines.append(
+            f"    knocked off upright {disturbed} time(s) and never came back"
+        )
+    else:
+        recovered = (disturbed if disturbed is not None else 5) - m["non_recovery_count"]
+        lines.append(
+            f"    recovered {recovered} of {disturbed if disturbed is not None else 5} "
+            f"times it was knocked off upright, taking "
             f"{m['recovery_time_s']:.2f} s on average"
             + (
                 f"; {m['non_recovery_count']} never recovered"
