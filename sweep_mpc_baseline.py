@@ -9,9 +9,13 @@ It is measured by the SAME code the trained policies are measured by --
 only new thing here is an adapter that lets the MPC controller stand in for a
 trained policy, because it needs the spine observation and SB3 policies do not.
 
-    ./.venv/bin/python sweep_mpc_baseline.py            # all 20 episodes
-    ./.venv/bin/python sweep_mpc_baseline.py --gui       # watch it
-    ./.venv/bin/python sweep_mpc_baseline.py --speed 0.9 # one speed only
+    ./.venv/bin/python sweep_mpc_baseline.py             # a window, all 20
+    ./.venv/bin/python sweep_mpc_baseline.py --headless   # numbers only
+    ./.venv/bin/python sweep_mpc_baseline.py --speed 0.9  # one speed only
+
+A fresh environment per episode, as RULES.md R4 requires, and a fresh
+MPCBalancer with it -- the controller holds internal state and must not carry it
+across episode boundaries any more than the simulator should.
 """
 
 import argparse
@@ -77,7 +81,8 @@ class _MPCPolicy:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--gui", action="store_true", help="open a window and watch")
+    p.add_argument("--headless", action="store_true",
+                   help="no window, numbers only. A window is the default.")
     p.add_argument("--speed", type=float, default=None,
                    help="only run episodes at this commanded speed")
     p.add_argument("--out", default="out/mpc_baseline")
@@ -89,44 +94,67 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
+    gui = not args.headless
     print(f"Upkie MPC balancer, {len(episodes)} episodes "
-          f"({'GUI' if args.gui else 'headless'}), scored by "
-          f"{scorer.name()} @ {scorer.scorer_sha()}\n")
-    if args.gui:
+          f"({'GUI window' if gui else 'headless'}), scored by "
+          f"{scorer.name()} @ {scorer.scorer_sha()}")
+    print(f"  starting tilt +-{reward_env.INIT_PITCH_RAD} rad, "
+          f"push {eval_set.PUSH_NEWTONS} N\n")
+    if gui:
         print("A PyBullet window should open. Ctrl-C to stop.\n")
 
-    env = reward_env.make_env(_no_reward, gui=args.gui)
-    wrapper = reward_env.find_reward_wrapper(env)
-    tap = _InfoTap(env)
-    policy = _MPCPolicy(tap, wrapper, dt=1.0 / reward_env.FREQUENCY)
-
     records = []
-    try:
-        for index, episode in enumerate(episodes, 1):
-            record = trainer_pybullet._rollout_episode(policy, tap, wrapper, episode)
-            records.append(record)
-            print(f"  {index:2d}/{len(episodes)}  {episode['kind']:4s} "
-                  f"seed {episode['seed']:3d}  {episode['commanded_speed']} m/s  "
-                  f"{'FELL' if record['fell'] else 'up'} "
-                  f"{record['episode_seconds']:5.2f}s  "
-                  f"pitch {record['max_pitch_excursion_deg']:5.2f}deg  "
-                  f"disp {record['net_displacement_m']:+.2f}m")
-    finally:
-        env.close()
+    solver_failures = 0
+    for index, episode in enumerate(episodes, 1):
+        # R4: a fresh environment per episode, and a fresh controller with it.
+        env = reward_env.make_env(_no_reward, gui=gui)
+        wrapper = reward_env.find_reward_wrapper(env)
+        tap = _InfoTap(env)
+        policy = _MPCPolicy(tap, wrapper, dt=1.0 / reward_env.FREQUENCY)
+        try:
+            record = trainer_pybullet._rollout_episode(
+                policy, tap, wrapper, episode)
+        finally:
+            solver_failures += policy.solver_failures
+            env.close()
+        records.append(record)
+        print(f"  {index:2d}/{len(episodes)}  {episode['kind']:4s} "
+              f"seed {episode['seed']:3d}  {episode['commanded_speed']} m/s  "
+              f"{'FELL' if record['fell'] else 'up'} "
+              f"{record['episode_seconds']:5.2f}s  "
+              f"pitch {record['max_pitch_excursion_deg']:5.2f}deg  "
+              f"disp {record['net_displacement_m']:+.2f}m")
+        sys.stdout.flush()
 
     rollout = {"schema_version": trainer_pybullet.SCHEMA_VERSION
                if hasattr(trainer_pybullet, "SCHEMA_VERSION") else "2.0",
                "episodes": records}
     (out / "rollout.json").write_text(json.dumps(rollout, indent=2))
     result = scorer.score(rollout, "upkie_mpc_controller")
+    # RULES.md R3: a result file records the code that made it.
+    import subprocess  # noqa: PLC0415
+
+    def _git(*a):
+        return subprocess.run(["git", *a], capture_output=True,
+                              text=True).stdout.strip()
+
+    result["provenance"] = {
+        "code_sha": _git("rev-parse", "HEAD"),
+        "code_sha_short": _git("rev-parse", "--short", "HEAD"),
+        "dirty": bool(_git("status", "--short")),
+        "init_pitch_rad": reward_env.INIT_PITCH_RAD,
+        "push_newtons": eval_set.PUSH_NEWTONS,
+        "episodes": len(records),
+        "source": "upkie.controllers.MPCBalancer",
+    }
     (out / "score.json").write_text(json.dumps(result, indent=2))
 
     print(f"\n  score {result['score']}")
     for key, value in result["measurements"].items():
         print(f"    {key:28} {value}")
     print(f"    {'violations':28} {result['violations'] or 'none'}")
-    if policy.solver_failures:
-        print(f"\n  QP solver failed on {policy.solver_failures} steps")
+    if solver_failures:
+        print(f"\n  QP solver failed on {solver_failures} steps")
     print(f"\n  wrote {out}/rollout.json and {out}/score.json")
     return 0
 

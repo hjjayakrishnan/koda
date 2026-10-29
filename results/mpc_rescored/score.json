@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "candidate_id": "upkie_mpc_controller",
+  "scorer": "koda-v1",
+  "score": 0.6031,
+  "per_speed": {
+    "0.3": 0.5299,
+    "0.6": 0.6082,
+    "0.9": 0.6694
+  },
+  "measurements": {
+    "survival_frac": 1.0,
+    "mean_speed_error_while_up": 0.2831,
+    "mean_speed_error": 0.2831,
+    "displacement_frac": 0.4533,
+    "heading_error_deg": 0.0,
+    "max_pitch_excursion_deg": 8.49,
+    "closest_joint_margin_deg": 71.33,
+    "peak_torque_frac_leg": 0.1071,
+    "peak_torque_frac_wheel": 1.0,
+    "saturated_step_frac_leg": 0.0,
+    "saturated_step_frac_wheel": 0.0718,
+    "recovery_time_s": null,
+    "non_recovery_count": 5,
+    "fell_count": 0,
+    "episode_count": 20
+  },
+  "active_measurements": [
+    "survival_frac",
+    "mean_speed_error",
+    "displacement_frac",
+    "heading_error_deg"
+  ],
+  "violations": [
+    "wheel_torque_exceeded",
+    "never_recovered_from_push"
+  ],
+  "scorer_sha": "6bfd77d",
+  "provenance": {
+    "code_sha": "d44d564149197787502b86f007a30e33c9f979e7",
+    "code_sha_short": "d44d564",
+    "dirty": true,
+    "init_pitch_rad": 0.02,
+    "push_newtons": 0.0,
+    "episodes": 20,
+    "source": "upkie.controllers.MPCBalancer"
+  }
+}
