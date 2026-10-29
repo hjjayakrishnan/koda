@@ -41,7 +41,9 @@ def main() -> int:
     parser.add_argument("--headless", action="store_true",
                         help="no window, just print the numbers")
     parser.add_argument("--no-follow", action="store_true",
-                        help="do not move the camera with the robot")
+                        help="leave the camera completely alone. The robot "
+                             "will drive out of frame, but nothing fights "
+                             "your mouse.")
     args = parser.parse_args()
 
     policy_path = Path(args.policy) if args.policy else newest_policy()
@@ -95,6 +97,22 @@ def main() -> int:
             )
         except Exception:
             client_id = None  # still watchable, just a static camera
+
+    if client_id is not None:
+        # Set the opening view ONCE. After this the follow code below never
+        # touches yaw, pitch or zoom again, so the mouse keeps working.
+        pybullet.resetDebugVisualizerCamera(
+            cameraDistance=1.6,
+            cameraYaw=50,
+            cameraPitch=-20,
+            cameraTargetPosition=[0.0, 0.0, 0.4],
+            physicsClientId=client_id,
+        )
+        print("Mouse:     left-drag rotates, scroll zooms, "
+              "ctrl+left-drag (or middle-drag) pans")
+        print("           the camera tracks the robot forward; your angle, "
+              "zoom and pan are kept")
+        print("           --no-follow leaves the camera completely alone\n")
     worst_pitch = 0.0
     total_reward = 0.0
     fell = False
@@ -107,11 +125,21 @@ def main() -> int:
             total_reward += reward
             if client_id is not None and step % 10 == 0:
                 forward = float(info["spine_observation"]["wheel_odometry"]["position"])
+                # Read the camera back and KEEP the viewer's yaw, pitch, zoom
+                # and sideways/vertical pan. Only the forward coordinate is
+                # overwritten, so the robot stays in shot.
+                #
+                # This used to reset distance, yaw and pitch to hardcoded
+                # values 20 times a second, which overwrote every mouse
+                # movement before it could be seen -- the camera felt dead and
+                # the robot still left the frame whenever the view was turned.
+                cam = pybullet.getDebugVisualizerCamera(physicsClientId=client_id)
+                yaw, pitch, distance, target = cam[8], cam[9], cam[10], cam[11]
                 pybullet.resetDebugVisualizerCamera(
-                    cameraDistance=1.6,
-                    cameraYaw=50,
-                    cameraPitch=-20,
-                    cameraTargetPosition=[forward, 0.0, 0.4],
+                    cameraDistance=distance,
+                    cameraYaw=yaw,
+                    cameraPitch=pitch,
+                    cameraTargetPosition=[forward, target[1], target[2]],
                     physicsClientId=client_id,
                 )
             worst_pitch = max(worst_pitch, abs(float(observation[0])))
