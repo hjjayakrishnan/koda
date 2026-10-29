@@ -40,5 +40,6 @@ notes/
 # recorded paths valid and lets anyone replay a result with watch_policy.py.
 !runs/
 runs/*
-!runs/r[123]c[1-6]/
-!runs/r[123]c[1-6]/policy.zip
+!runs/seed*/
+!runs/seed*/*/
+!runs/seed*/*/policy.zip

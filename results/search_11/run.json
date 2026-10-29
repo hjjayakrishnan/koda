@@ -632,7 +632,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r1c1/policy.zip",
+            "policy_path": "runs/seed11/r1c1/policy.zip",
             "video_path": null,
             "train_seconds": 1351.8,
             "compute_seconds": 1470.4
@@ -1287,7 +1287,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r1c2/policy.zip",
+            "policy_path": "runs/seed11/r1c2/policy.zip",
             "video_path": null,
             "train_seconds": 1430.6,
             "compute_seconds": 1476.6
@@ -1942,7 +1942,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r1c3/policy.zip",
+            "policy_path": "runs/seed11/r1c3/policy.zip",
             "video_path": null,
             "train_seconds": 1330.2,
             "compute_seconds": 1383.3
@@ -2603,7 +2603,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r1c4/policy.zip",
+            "policy_path": "runs/seed11/r1c4/policy.zip",
             "video_path": null,
             "train_seconds": 1423.0,
             "compute_seconds": 1476.0
@@ -3258,7 +3258,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r1c5/policy.zip",
+            "policy_path": "runs/seed11/r1c5/policy.zip",
             "video_path": null,
             "train_seconds": 1318.5,
             "compute_seconds": 1387.5
@@ -3919,7 +3919,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r1c6/policy.zip",
+            "policy_path": "runs/seed11/r1c6/policy.zip",
             "video_path": null,
             "train_seconds": 1355.2,
             "compute_seconds": 1498.1
@@ -4585,7 +4585,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r2c1/policy.zip",
+            "policy_path": "runs/seed11/r2c1/policy.zip",
             "video_path": null,
             "train_seconds": 1311.7,
             "compute_seconds": 1434.3
@@ -5246,7 +5246,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r2c2/policy.zip",
+            "policy_path": "runs/seed11/r2c2/policy.zip",
             "video_path": null,
             "train_seconds": 1314.6,
             "compute_seconds": 1368.3
@@ -5907,7 +5907,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r2c3/policy.zip",
+            "policy_path": "runs/seed11/r2c3/policy.zip",
             "video_path": null,
             "train_seconds": 1363.8,
             "compute_seconds": 1446.1
@@ -6574,7 +6574,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r2c4/policy.zip",
+            "policy_path": "runs/seed11/r2c4/policy.zip",
             "video_path": null,
             "train_seconds": 1327.4,
             "compute_seconds": 1340.1
@@ -7235,7 +7235,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r2c5/policy.zip",
+            "policy_path": "runs/seed11/r2c5/policy.zip",
             "video_path": null,
             "train_seconds": 1342.6,
             "compute_seconds": 1381.2
@@ -7896,7 +7896,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r2c6/policy.zip",
+            "policy_path": "runs/seed11/r2c6/policy.zip",
             "video_path": null,
             "train_seconds": 1303.5,
             "compute_seconds": 1430.8
@@ -8567,7 +8567,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r3c1/policy.zip",
+            "policy_path": "runs/seed11/r3c1/policy.zip",
             "video_path": null,
             "train_seconds": 1259.4,
             "compute_seconds": 1271.8
@@ -9228,7 +9228,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r3c2/policy.zip",
+            "policy_path": "runs/seed11/r3c2/policy.zip",
             "video_path": null,
             "train_seconds": 1255.7,
             "compute_seconds": 1331.5
@@ -9883,7 +9883,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r3c3/policy.zip",
+            "policy_path": "runs/seed11/r3c3/policy.zip",
             "video_path": null,
             "train_seconds": 1252.2,
             "compute_seconds": 1285.4
@@ -10544,7 +10544,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r3c4/policy.zip",
+            "policy_path": "runs/seed11/r3c4/policy.zip",
             "video_path": null,
             "train_seconds": 1236.2,
             "compute_seconds": 1268.7
@@ -11205,7 +11205,7 @@
                 }
               ]
             },
-            "policy_path": "runs/r3c5/policy.zip",
+            "policy_path": "runs/seed11/r3c5/policy.zip",
             "video_path": null,
             "train_seconds": 1294.3,
             "compute_seconds": 1406.1
