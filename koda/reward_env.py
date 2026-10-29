@@ -42,11 +42,33 @@ DT = 1.0 / FREQUENCY
 # reproduces exactly.
 INIT_PITCH_RAD = 0.02
 
+# The setpoint ramp, for TRAINING only. Both numbers chosen by the user on
+# 2026-10-29 after the mechanism was gone through from first principles.
+#
+# Why it exists: this robot is a body on two wheels, so to move forward it must
+# first drive the wheels BACKWARD to tip the body over, then drive forward to
+# catch the fall. Asked for 0.3, 0.6 or 0.9 m/s from an upright start, it
+# over-tips and is on the floor inside half a second. Every early episode ended
+# in a fall, so the reward said "moving = falling = little reward, standing
+# still = staying up = more reward", and PPO learned to stand still. Measured:
+# r3c2 never falls (survival 1.000) but its mean speed error is 1.0823 m/s
+# against the hand-built MPC controller's 0.2831. A balancer, not a tracker.
+#
+# RAMP_FROM is what is asked for at training step 0. RAMP_OVER is the fraction
+# of training by which the ask reaches the real evaluation setpoints; the rest
+# of the run is spent at them. At 500,000 steps and 0.6 that is step 300,000.
+#
+# Evaluation is untouched: scored rollouts always set `fixed_speed`, which
+# overrides the ramp entirely, so scores stay comparable to MPC's 0.6031.
+RAMP_FROM = 0.05
+RAMP_OVER = 0.6
+
 
 class RewardWrapper(gym.Wrapper):
     r"""Wrap the Pendulum env so a reward function decides the reward."""
 
-    def __init__(self, env, reward_fn, speeds=eval_set.SPEEDS, fixed_speed=None):
+    def __init__(self, env, reward_fn, speeds=eval_set.SPEEDS, fixed_speed=None,
+                 ramp_setpoint=False, total_steps=None):
         super().__init__(env)
         self.reward_fn = reward_fn
         self.speeds = tuple(speeds)
@@ -54,9 +76,21 @@ class RewardWrapper(gym.Wrapper):
         self.commanded_speed = self.speeds[0]
         self.last_terms = {}
 
+        # See RAMP_FROM / RAMP_OVER above. Training only.
+        self.ramp_setpoint = ramp_setpoint
+        self.total_steps = total_steps
+        self.steps_seen = 0
+
         low = np.array([-np.pi, -1e3, -1e3, -5.0, 0.0], dtype=np.float32)
         high = np.array([np.pi, 1e3, 1e3, 5.0, 2.0], dtype=np.float32)
         self.observation_space = gym.spaces.Box(low, high, dtype=np.float32)
+
+    def _setpoint_scale(self):
+        """0 at the start of training, 1 from RAMP_OVER of it onwards."""
+        if not (self.ramp_setpoint and self.total_steps):
+            return 1.0
+        through = self.steps_seen / (self.total_steps * RAMP_OVER)
+        return min(1.0, max(0.0, through))
 
     def _observe(self, raw):
         return np.array(
@@ -67,15 +101,22 @@ class RewardWrapper(gym.Wrapper):
     def reset(self, *, seed=None, options=None):
         raw, info = self.env.reset(seed=seed, options=options)
         if self.fixed_speed is not None:
+            # Evaluation. The ramp never applies here.
             self.commanded_speed = self.fixed_speed
         else:
-            self.commanded_speed = float(
-                self.np_random.choice(self.speeds)
-            )
+            target = float(self.np_random.choice(self.speeds))
+            if self.ramp_setpoint:
+                scale = self._setpoint_scale()
+                self.commanded_speed = (
+                    RAMP_FROM + (target - RAMP_FROM) * scale
+                )
+            else:
+                self.commanded_speed = target
         self.last_terms = {}
         return self._observe(raw), info
 
     def step(self, action):
+        self.steps_seen += 1
         raw, _zero, terminated, truncated, info = self.env.step(action)
 
         state = state_mod.state_from_pendulum(
@@ -112,7 +153,7 @@ def find_reward_wrapper(env):
 
 
 def make_env(reward_fn, seed=None, gui=False, fixed_speed=None, max_steps=None,
-             real_time=None):
+             real_time=None, ramp_setpoint=False, total_steps=None):
     """One wrapped environment, ready to train or roll out in.
 
     Open ONE of these AT A TIME. PyBullet's module-level `disconnect()` defaults
@@ -151,7 +192,8 @@ def make_env(reward_fn, seed=None, gui=False, fixed_speed=None, max_steps=None,
         frequency_checks=False,
     )
     env.unwrapped.update_init_rand(pitch=INIT_PITCH_RAD)
-    env = RewardWrapper(env, reward_fn, fixed_speed=fixed_speed)
+    env = RewardWrapper(env, reward_fn, fixed_speed=fixed_speed,
+                        ramp_setpoint=ramp_setpoint, total_steps=total_steps)
     if max_steps:
         env = gym.wrappers.TimeLimit(env, max_episode_steps=max_steps)
     if seed is not None:

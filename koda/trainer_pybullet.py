@@ -289,6 +289,7 @@ def train(
     total_steps: int = DEFAULT_STEPS,
     out_dir: str = "runs",
     eval_episodes: int | None = None,
+    ramp_setpoint: bool = False,
 ) -> dict:
     """Train one candidate with PPO and measure the result."""
     started = time.time()
@@ -311,7 +312,9 @@ def train(
         from stable_baselines3 import PPO  # noqa: PLC0415
 
         env = reward_env.make_env(reward_fn, seed=seed, gui=False,
-                                  max_steps=EVAL_STEPS)
+                                  max_steps=EVAL_STEPS,
+                                  ramp_setpoint=ramp_setpoint,
+                                  total_steps=total_steps)
         wrapper = reward_env.find_reward_wrapper(env)
         model = PPO("MlpPolicy", env, seed=seed, verbose=0, device="cpu")
 

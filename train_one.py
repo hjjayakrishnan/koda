@@ -30,6 +30,14 @@ def main() -> int:
     parser.add_argument("--episodes", type=int, default=None,
                         help="how many eval episodes (default: all 20)")
     parser.add_argument("--id", default=None, help="name for runs/<id>/")
+    parser.add_argument(
+        "--ramp-setpoint",
+        action="store_true",
+        help="raise the commanded speed during training instead of asking for "
+             "the full setpoint from step 0: start at reward_env.RAMP_FROM and "
+             "reach the real setpoints by reward_env.RAMP_OVER of the run. "
+             "Training only -- scored episodes always use the real setpoints.",
+    )
     args = parser.parse_args()
 
     reward_path = Path(args.reward)
@@ -51,6 +59,7 @@ def main() -> int:
         verdict["reward_fn"], candidate_id, 1, "balance upright and drive "
         "forward at the commanded speed", seed=args.seed,
         total_steps=args.steps, eval_episodes=args.episodes,
+        ramp_setpoint=args.ramp_setpoint,
     )
 
     out = Path("out/train_one") / candidate_id
