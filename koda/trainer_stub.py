@@ -191,8 +191,17 @@ def train(
     round_number: int,
     goal: str,
     seed: int = 0,
+    total_steps: int | None = None,
+    out_dir: str = "runs",
+    eval_episodes: int | None = None,
 ) -> dict:
-    """Pretend to train one candidate. Returns a TrainerResult dict."""
+    """Pretend to train one candidate. Returns a TrainerResult dict.
+
+    Takes the same arguments as `trainer_pybullet.train` and ignores the ones
+    that only mean something for real training. The two signatures have to
+    match: the orchestrator picks a trainer by name and calls it the same way,
+    so a divergence here is only discovered at run time.
+    """
     rng = random.Random(f"{candidate_id}:{round_number}:{seed}")
 
     result = {

@@ -53,7 +53,7 @@ def main() -> int:
         total_steps=args.steps, eval_episodes=args.episodes,
     )
 
-    out = Path("out/train_one")
+    out = Path("out/train_one") / candidate_id
     out.mkdir(parents=True, exist_ok=True)
     (out / "result.json").write_text(json.dumps(result, indent=2))
 

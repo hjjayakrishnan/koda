@@ -32,6 +32,11 @@ from pathlib import Path
 from koda import SCHEMA_VERSION
 from koda import state as state_mod
 
+# Control rate. The grader needs it to turn a step limit into seconds; it does
+# not import reward_env, which would pull in gymnasium and PyBullet for a
+# constant.
+FREQUENCY = 200.0
+
 # --------------------------------------------------------------------------
 # What the score is computed over. Pre-registered, frozen at `prereg-v1`.
 # --------------------------------------------------------------------------
@@ -147,6 +152,46 @@ def _survival(episodes):
     )
 
 
+def _episode_seconds(episode):
+    """The INTENDED episode length, not the surviving part."""
+    return episode["step_limit"] / FREQUENCY
+
+
+def _full_speed_error(episode):
+    r"""Mean speed error over the whole intended episode.
+
+    The trainer measures `mean_speed_error` only over the steps the robot
+    stayed upright, which is the honest raw measurement but the wrong thing to
+    score. Falling early deletes the evidence of bad driving: the robot stops
+    being measured at the moment it fails.
+
+    Measured on this data, at a 0.9 m/s command:
+
+        r1c3   speed error 0.212   over    92 control steps   (fell at 0.46 s)
+        MPC    speed error 0.338   over 4,000 control steps   (never fell)
+
+    r1c3 looks like the better driver. It lunged to 0.795 m/s and fell over.
+    Its 92 steps were its best 92 steps. Scoring that rewards lunging and
+    crashing over accelerating smoothly and surviving.
+
+    So the unmeasured remainder is filled in with the truth: a robot on the
+    floor has zero velocity, so its error there is the full commanded speed.
+    Derived here rather than changed in the trainer, because `rollout` holds
+    raw physical facts and anything normalised is a scoring choice -- and
+    because it lets every rollout already on disk be re-scored without
+    re-simulating.
+    """
+    survived = episode["steps_survived"]
+    limit = episode["step_limit"]
+    if survived >= limit:
+        return episode["mean_speed_error"]
+    on_floor = limit - survived
+    return (
+        episode["mean_speed_error"] * survived
+        + abs(episode["commanded_speed"]) * on_floor
+    ) / limit
+
+
 def _displacement_frac(episode):
     """Ground covered as a fraction of what the command implies.
 
@@ -157,8 +202,15 @@ def _displacement_frac(episode):
     than scored on it.
 
     Negative is kept, not clamped: travelling backwards is informative.
+
+    The denominator is the INTENDED episode, not the surviving part. Using the
+    surviving part had the same flaw as the speed error above, and worse: r1c3
+    covered 0.37 m in 0.46 s before falling, which is 0.89 of the distance
+    commanded *for those 0.46 seconds* and 0.02 of the distance commanded for
+    the episode it was asked to complete. The task is to cover the ground, not
+    to have been on pace at the moment of failure.
     """
-    wanted = episode["commanded_speed"] * episode["episode_seconds"]
+    wanted = episode["commanded_speed"] * _episode_seconds(episode)
     if abs(wanted) < 1e-6:
         return None
     return episode["net_displacement_m"] / wanted
@@ -205,7 +257,7 @@ def _task_score(episodes):
         return 0.0
 
     survival = _survival(episodes)
-    speed_error = sum(e["mean_speed_error"] for e in episodes) / len(episodes)
+    speed_error = sum(_full_speed_error(e) for e in episodes) / len(episodes)
     displacement = _mean([_displacement_frac(e) for e in episodes])
     worst_heading = max(e["heading_error_deg"] for e in episodes)
 
@@ -256,8 +308,14 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
 
     measurements = {
         "survival_frac": round(_survival(task), 4),
-        "mean_speed_error": round(
+        # The raw trainer measurement, over surviving steps only. Kept
+        # visible so the difference between the two is auditable rather than
+        # silently replaced.
+        "mean_speed_error_while_up": round(
             sum(e["mean_speed_error"] for e in task) / len(task), 4
+        ),
+        "mean_speed_error": round(
+            sum(_full_speed_error(e) for e in task) / len(task), 4
         ),
         "displacement_frac": (
             round(v, 4)

@@ -641,16 +641,17 @@
             "schema_version": "2.0",
             "candidate_id": "r1c1",
             "scorer": "koda-v1",
-            "score": 0.0814,
+            "score": 0.0988,
             "per_speed": {
               "0.3": 0.4326,
               "0.6": 0.1294,
-              "0.9": 0.0013
+              "0.9": 0.0024
             },
             "measurements": {
               "survival_frac": 0.7071,
-              "mean_speed_error": 0.6254,
-              "displacement_frac": -0.0131,
+              "mean_speed_error_while_up": 0.6254,
+              "mean_speed_error": 0.5977,
+              "displacement_frac": 0.0179,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.94,
               "closest_joint_margin_deg": 68.24,
@@ -674,7 +675,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -1296,16 +1297,17 @@
             "schema_version": "2.0",
             "candidate_id": "r1c2",
             "scorer": "koda-v1",
-            "score": 0.0605,
+            "score": 0.05,
             "per_speed": {
               "0.3": 0.3839,
-              "0.6": 0.0118,
-              "0.9": 0.003
+              "0.6": 0.0087,
+              "0.9": 0.0016
             },
             "measurements": {
               "survival_frac": 0.3777,
-              "mean_speed_error": 0.5766,
-              "displacement_frac": 0.0326,
+              "mean_speed_error_while_up": 0.5766,
+              "mean_speed_error": 0.5984,
+              "displacement_frac": 0.0022,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.43,
               "closest_joint_margin_deg": 71.4,
@@ -1329,7 +1331,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -1951,16 +1953,17 @@
             "schema_version": "2.0",
             "candidate_id": "r1c3",
             "scorer": "koda-v1",
-            "score": 0.2281,
+            "score": 0.0508,
             "per_speed": {
               "0.3": 0.3927,
-              "0.6": 0.0217,
-              "0.9": 0.0197
+              "0.6": 0.0046,
+              "0.9": 0.0008
             },
             "measurements": {
               "survival_frac": 0.3514,
-              "mean_speed_error": 0.2677,
-              "displacement_frac": 0.5247,
+              "mean_speed_error_while_up": 0.2677,
+              "mean_speed_error": 0.5903,
+              "displacement_frac": 0.0179,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.61,
               "closest_joint_margin_deg": 71.16,
@@ -1984,7 +1987,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -2612,16 +2615,17 @@
             "schema_version": "2.0",
             "candidate_id": "r1c4",
             "scorer": "koda-v1",
-            "score": 0.064,
+            "score": 0.0481,
             "per_speed": {
               "0.3": 0.3834,
-              "0.6": 0.0093,
-              "0.9": 0.003
+              "0.6": 0.0067,
+              "0.9": 0.001
             },
             "measurements": {
               "survival_frac": 0.3643,
-              "mean_speed_error": 0.5636,
-              "displacement_frac": 0.0476,
+              "mean_speed_error_while_up": 0.5636,
+              "mean_speed_error": 0.5985,
+              "displacement_frac": 0.0018,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.45,
               "closest_joint_margin_deg": 71.47,
@@ -2645,7 +2649,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -3267,16 +3271,17 @@
             "schema_version": "2.0",
             "candidate_id": "r1c5",
             "scorer": "koda-v1",
-            "score": 0.2254,
+            "score": 0.0703,
             "per_speed": {
               "0.3": 0.0855,
-              "0.6": 0.1123,
-              "0.9": 0.0936
+              "0.6": 0.0631,
+              "0.9": 0.0184
             },
             "measurements": {
               "survival_frac": 0.4652,
-              "mean_speed_error": 0.7432,
-              "displacement_frac": 0.9425,
+              "mean_speed_error_while_up": 0.7432,
+              "mean_speed_error": 0.7645,
+              "displacement_frac": 0.2177,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.16,
               "closest_joint_margin_deg": 69.77,
@@ -3300,7 +3305,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -3936,6 +3941,7 @@
             },
             "measurements": {
               "survival_frac": 1.0,
+              "mean_speed_error_while_up": 0.6175,
               "mean_speed_error": 0.6175,
               "displacement_frac": -0.032,
               "heading_error_deg": 0.0,
@@ -3961,14 +3967,15 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         }
       ],
       "winner": "r1c3",
       "reflection": "Each reward term, averaged per control step, at 10%, 25%, 50%, 100% of training:\n    contact    +0.536 -> +0.528 -> +0.593 -> +0.792\n    effort     -0.003 -> -0.003 -> -0.002 -> -0.001\n    pitch_exp  -0.415 -> -0.420 -> -0.354 -> -0.192\n    speed_exp  -0.670 -> -0.425 -> -0.310 -> -0.324\n    (sum)      -0.552 -> -0.321 -> -0.073 -> +0.275\n\nMeasured on the trained robot, over 20 evaluation episodes:\n    stayed up for 35% of the episode, on average\n    mean speed error 0.268 m/s, against commands of 0.3, 0.6 and 0.9 m/s\n    covered 52% of the ground the command implies\n    worst heading drift 0.0 degrees\n    worst pitch excursion 57.6 degrees\n    closest a joint came to its travel limit: 71.2 degrees\n    never recovered from any of the 5 shoves\n    peak motor torque reached 100% of the wheel motors' rated limit and 17% of the leg motors'\n    limits exceeded: wheel_torque_exceeded, fell_over, never_recovered_from_push\n\nScore: 0.228 out of 1.000 (0.3 m/s: 0.393, 0.6 m/s: 0.022, 0.9 m/s: 0.020)",
       "survivors": 6,
-      "died": 0
+      "died": 0,
+      "winner_note": "The winner as the run actually happened. Round N+1's prompt was built from this candidate, so it is history, not a ranking."
     },
     {
       "round": 2,
@@ -4594,16 +4601,17 @@
             "schema_version": "2.0",
             "candidate_id": "r2c1",
             "scorer": "koda-v1",
-            "score": 0.1742,
+            "score": 0.1368,
             "per_speed": {
               "0.3": 0.2313,
               "0.6": 0.1008,
-              "0.9": 0.1639
+              "0.9": 0.0887
             },
             "measurements": {
               "survival_frac": 0.8413,
-              "mean_speed_error": 0.9879,
-              "displacement_frac": 0.4355,
+              "mean_speed_error_while_up": 0.9879,
+              "mean_speed_error": 0.9404,
+              "displacement_frac": 0.3258,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.3,
               "closest_joint_margin_deg": 67.91,
@@ -4627,7 +4635,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -5255,16 +5263,17 @@
             "schema_version": "2.0",
             "candidate_id": "r2c2",
             "scorer": "koda-v1",
-            "score": 0.0,
+            "score": 0.0084,
             "per_speed": {
-              "0.3": 0.0255,
-              "0.6": 0.0,
-              "0.9": 0.0
+              "0.3": 0.0804,
+              "0.6": 0.0059,
+              "0.9": 0.0003
             },
             "measurements": {
               "survival_frac": 0.3122,
-              "mean_speed_error": 1.4347,
-              "displacement_frac": -1.2985,
+              "mean_speed_error_while_up": 1.4347,
+              "mean_speed_error": 0.8678,
+              "displacement_frac": -0.4091,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.97,
               "closest_joint_margin_deg": 67.16,
@@ -5288,7 +5297,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -5916,16 +5925,17 @@
             "schema_version": "2.0",
             "candidate_id": "r2c3",
             "scorer": "koda-v1",
-            "score": 0.3209,
+            "score": 0.1401,
             "per_speed": {
               "0.3": 0.4268,
-              "0.6": 0.1926,
-              "0.9": 0.211
+              "0.6": 0.0895,
+              "0.9": 0.0449
             },
             "measurements": {
               "survival_frac": 0.532,
-              "mean_speed_error": 0.3022,
-              "displacement_frac": 0.4922,
+              "mean_speed_error_while_up": 0.3022,
+              "mean_speed_error": 0.5109,
+              "displacement_frac": 0.1549,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.91,
               "closest_joint_margin_deg": 68.67,
@@ -5949,7 +5959,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -6583,16 +6593,17 @@
             "schema_version": "2.0",
             "candidate_id": "r2c4",
             "scorer": "koda-v1",
-            "score": 0.0154,
+            "score": 0.0095,
             "per_speed": {
-              "0.3": 0.0243,
-              "0.6": 0.0148,
-              "0.9": 0.0113
+              "0.3": 0.03,
+              "0.6": 0.0098,
+              "0.9": 0.0019
             },
             "measurements": {
               "survival_frac": 0.0713,
-              "mean_speed_error": 0.811,
-              "displacement_frac": 0.3913,
+              "mean_speed_error_while_up": 0.811,
+              "mean_speed_error": 0.6158,
+              "displacement_frac": 0.028,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.37,
               "closest_joint_margin_deg": 71.02,
@@ -6616,7 +6627,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -7244,16 +7255,17 @@
             "schema_version": "2.0",
             "candidate_id": "r2c5",
             "scorer": "koda-v1",
-            "score": 0.0234,
+            "score": 0.0248,
             "per_speed": {
-              "0.3": 0.0423,
-              "0.6": 0.0404,
-              "0.9": 0.0077
+              "0.3": 0.0646,
+              "0.6": 0.0442,
+              "0.9": 0.0017
             },
             "measurements": {
               "survival_frac": 0.2003,
-              "mean_speed_error": 0.6228,
-              "displacement_frac": -0.1107,
+              "mean_speed_error_while_up": 0.6228,
+              "mean_speed_error": 0.6106,
+              "displacement_frac": -0.0282,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.07,
               "closest_joint_margin_deg": 69.09,
@@ -7277,7 +7289,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -7905,16 +7917,17 @@
             "schema_version": "2.0",
             "candidate_id": "r2c6",
             "scorer": "koda-v1",
-            "score": 0.1548,
+            "score": 0.1245,
             "per_speed": {
               "0.3": 0.2837,
-              "0.6": 0.1337,
-              "0.9": 0.0612
+              "0.6": 0.0801,
+              "0.9": 0.0453
             },
             "measurements": {
               "survival_frac": 0.7829,
-              "mean_speed_error": 1.5922,
-              "displacement_frac": 0.4393,
+              "mean_speed_error_while_up": 1.5922,
+              "mean_speed_error": 1.4072,
+              "displacement_frac": 0.353,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.73,
               "closest_joint_margin_deg": 64.45,
@@ -7937,14 +7950,15 @@
               "wheel_torque_exceeded",
               "fell_over"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         }
       ],
       "winner": "r2c3",
       "reflection": "Each reward term, averaged per control step, at 10%, 25%, 50%, 100% of training:\n    contact       +0.415 -> +0.491 -> +0.462 -> +0.540\n    effort        -0.002 -> -0.002 -> -0.002 -> -0.001\n    joint_safety  +0.000 -> +0.000 -> +0.000 -> +0.000\n    pitch         -0.168 -> -0.105 -> -0.116 -> -0.062\n    speed         -0.509 -> -0.499 -> -0.357 -> -0.221\n    (sum)         -0.264 -> -0.116 -> -0.013 -> +0.256\n\nThe term 'joint_safety' read +0.000 at every checkpoint. It never varied with what the robot did.\n\nMeasured on the trained robot, over 20 evaluation episodes:\n    stayed up for 53% of the episode, on average\n    mean speed error 0.302 m/s, against commands of 0.3, 0.6 and 0.9 m/s\n    covered 49% of the ground the command implies\n    worst heading drift 0.0 degrees\n    worst pitch excursion 57.9 degrees\n    closest a joint came to its travel limit: 68.7 degrees\n    never recovered from any of the 5 shoves\n    peak motor torque reached 100% of the wheel motors' rated limit and 18% of the leg motors'\n    limits exceeded: wheel_torque_exceeded, fell_over, never_recovered_from_push\n\nScore: 0.321 out of 1.000 (0.3 m/s: 0.427, 0.6 m/s: 0.193, 0.9 m/s: 0.211)",
       "survivors": 6,
-      "died": 0
+      "died": 0,
+      "winner_note": "The winner as the run actually happened. Round N+1's prompt was built from this candidate, so it is history, not a ranking."
     },
     {
       "round": 3,
@@ -8576,16 +8590,17 @@
             "schema_version": "2.0",
             "candidate_id": "r3c1",
             "scorer": "koda-v1",
-            "score": 0.0109,
+            "score": 0.0097,
             "per_speed": {
-              "0.3": 0.0273,
-              "0.6": 0.0119,
-              "0.9": 0.0023
+              "0.3": 0.028,
+              "0.6": 0.0098,
+              "0.9": 0.0016
             },
             "measurements": {
               "survival_frac": 0.0733,
-              "mean_speed_error": 0.6103,
-              "displacement_frac": 0.0537,
+              "mean_speed_error_while_up": 0.6103,
+              "mean_speed_error": 0.6007,
+              "displacement_frac": 0.0039,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.47,
               "closest_joint_margin_deg": 71.24,
@@ -8609,7 +8624,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -9237,16 +9252,17 @@
             "schema_version": "2.0",
             "candidate_id": "r3c2",
             "scorer": "koda-v1",
-            "score": 0.3106,
+            "score": 0.1779,
             "per_speed": {
               "0.3": 0.4555,
-              "0.6": 0.0299,
+              "0.6": 0.0103,
               "0.9": 0.1124
             },
             "measurements": {
               "survival_frac": 0.6888,
-              "mean_speed_error": 1.269,
-              "displacement_frac": 1.1921,
+              "mean_speed_error_while_up": 1.269,
+              "mean_speed_error": 0.9416,
+              "displacement_frac": 0.5386,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.47,
               "closest_joint_margin_deg": 62.46,
@@ -9270,7 +9286,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -9892,16 +9908,17 @@
             "schema_version": "2.0",
             "candidate_id": "r3c3",
             "scorer": "koda-v1",
-            "score": 0.1071,
+            "score": 0.0769,
             "per_speed": {
-              "0.3": 0.1945,
-              "0.6": 0.073,
-              "0.9": 0.054
+              "0.3": 0.2288,
+              "0.6": 0.0432,
+              "0.9": 0.0119
             },
             "measurements": {
               "survival_frac": 0.2371,
-              "mean_speed_error": 1.2104,
-              "displacement_frac": 2.3575,
+              "mean_speed_error_while_up": 1.2104,
+              "mean_speed_error": 0.7779,
+              "displacement_frac": 0.612,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.95,
               "closest_joint_margin_deg": 69.03,
@@ -9925,7 +9942,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -10553,16 +10570,17 @@
             "schema_version": "2.0",
             "candidate_id": "r3c4",
             "scorer": "koda-v1",
-            "score": 0.1146,
+            "score": 0.1163,
             "per_speed": {
-              "0.3": 0.1293,
-              "0.6": 0.0141,
-              "0.9": 0.1955
+              "0.3": 0.1469,
+              "0.6": 0.0052,
+              "0.9": 0.1792
             },
             "measurements": {
               "survival_frac": 0.2547,
-              "mean_speed_error": 1.5376,
-              "displacement_frac": 3.0868,
+              "mean_speed_error_while_up": 1.5376,
+              "mean_speed_error": 0.8146,
+              "displacement_frac": 0.9292,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 58.01,
               "closest_joint_margin_deg": 61.3,
@@ -10586,7 +10604,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -11214,16 +11232,17 @@
             "schema_version": "2.0",
             "candidate_id": "r3c5",
             "scorer": "koda-v1",
-            "score": 0.1262,
+            "score": 0.1244,
             "per_speed": {
               "0.3": 0.3973,
               "0.6": 0.1494,
-              "0.9": 0.018
+              "0.9": 0.0159
             },
             "measurements": {
               "survival_frac": 0.8652,
-              "mean_speed_error": 0.5889,
-              "displacement_frac": 0.0189,
+              "mean_speed_error_while_up": 0.5889,
+              "mean_speed_error": 0.5909,
+              "displacement_frac": 0.017,
               "heading_error_deg": 0.0,
               "max_pitch_excursion_deg": 57.94,
               "closest_joint_margin_deg": 68.23,
@@ -11247,7 +11266,7 @@
               "fell_over",
               "never_recovered_from_push"
             ],
-            "scorer_sha": "eee71c2"
+            "scorer_sha": "6bfd77d"
           }
         },
         {
@@ -11273,7 +11292,8 @@
       "winner": "r3c2",
       "reflection": "Each reward term, averaged per control step, at 10%, 25%, 50%, 100% of training:\n    contact   +0.656 -> +0.750 -> +0.765 -> +0.766\n    pitch     -0.120 -> -0.078 -> -0.053 -> -0.036\n    progress  +0.102 -> +0.283 -> +0.326 -> +0.292\n    torque    -0.041 -> -0.037 -> -0.047 -> -0.092\n    yaw       +0.000 -> +0.000 -> +0.000 -> +0.000\n    (sum)     +0.597 -> +0.918 -> +0.991 -> +0.930\n\nThe term 'yaw' read +0.000 at every checkpoint. It never varied with what the robot did.\n\nMeasured on the trained robot, over 20 evaluation episodes:\n    stayed up for 69% of the episode, on average\n    mean speed error 1.269 m/s, against commands of 0.3, 0.6 and 0.9 m/s\n    covered 119% of the ground the command implies\n    worst heading drift 0.0 degrees\n    worst pitch excursion 57.5 degrees\n    closest a joint came to its travel limit: 62.5 degrees\n    never recovered from any of the 5 shoves\n    peak motor torque reached 100% of the wheel motors' rated limit and 33% of the leg motors'\n    limits exceeded: wheel_torque_exceeded, fell_over, never_recovered_from_push\n\nScore: 0.311 out of 1.000 (0.3 m/s: 0.456, 0.6 m/s: 0.030, 0.9 m/s: 0.112)",
       "survivors": 5,
-      "died": 1
+      "died": 1,
+      "winner_note": "The winner as the run actually happened. Round N+1's prompt was built from this candidate, so it is history, not a ranking."
     }
   ],
   "pathologies": [
@@ -11432,5 +11452,10 @@
     "note": "stub trainer and fixture candidates: nothing was spent"
   },
   "model": "nvidia/nemotron-3-super-120b-a12b",
-  "wall_seconds": 4410.36
+  "wall_seconds": 4410.36,
+  "regraded": {
+    "when": "2026-10-28",
+    "scorer_sha": "6bfd77d",
+    "what": "Scores re-computed from the stored rollouts after the grader was fixed to measure speed error and displacement over the intended episode rather than only the surviving part. No re-simulation. Winners and reflections are left exactly as they were during the run -- they are what drove the search. Under the corrected grader round 1's best is r1c6 (0.1197) rather than r1c3 (0.0508), so the candidate that fed round 2 is not the one the fixed grader would have chosen."
+  }
 }

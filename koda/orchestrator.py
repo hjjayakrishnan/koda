@@ -134,7 +134,8 @@ def _grade_worker(payload):
       first one's server; separate processes sidestep that entirely rather than
       working around it.
     """
-    source, candidate_id, round_number, goal, seed, trainer_name, steps = payload
+    (source, candidate_id, round_number, goal, seed, trainer_name, steps,
+     run_dir) = payload
     try:
         import torch  # noqa: PLC0415
 
@@ -143,11 +144,11 @@ def _grade_worker(payload):
         pass
     return _grade_one(
         source, candidate_id, round_number, goal, seed,
-        _pick_trainer(trainer_name), steps,
+        _pick_trainer(trainer_name), steps, run_dir,
     )
 
 
-def _grade_batch(batch, round_number, goal, seed, trainer_name, jobs, steps):
+def _grade_batch(batch, round_number, goal, seed, trainer_name, jobs, steps, run_dir):
     """Grade a round's candidates, `jobs` at a time, in candidate order.
 
     Candidates within a round are independent -- each trains a fresh policy
@@ -158,7 +159,8 @@ def _grade_batch(batch, round_number, goal, seed, trainer_name, jobs, steps):
     finished first, so the winner on a tie does not depend on scheduling.
     """
     payloads = [
-        (c["source"], c["candidate_id"], round_number, goal, seed, trainer_name, steps)
+        (c["source"], c["candidate_id"], round_number, goal, seed, trainer_name,
+         steps, run_dir)
         for c in batch
     ]
     if jobs <= 1 or len(payloads) == 1:
@@ -171,7 +173,7 @@ def _grade_batch(batch, round_number, goal, seed, trainer_name, jobs, steps):
 
 
 def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_stub,
-               steps=None):
+               steps=None, run_dir="runs"):
     """Gate 1, then train, then grade. Returns one candidate record."""
     verdict = gate1.check(source, candidate_id)
     if not verdict["ok"]:
@@ -181,7 +183,9 @@ def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_s
             "score": None,
         }
 
-    kwargs = {} if steps is None else {"total_steps": steps}
+    kwargs = {"out_dir": run_dir}
+    if steps is not None:
+        kwargs["total_steps"] = steps
     result = trainer.train(
         verdict["reward_fn"], candidate_id, round_number, goal, seed, **kwargs
     )
@@ -193,10 +197,11 @@ def _grade_one(source, candidate_id, round_number, goal, seed, trainer=trainer_s
     return {"candidate_id": candidate_id, "trainer": result, "score": score}
 
 
-def _human_baseline(path, goal, seed, trainer=trainer_stub):
+def _human_baseline(path, goal, seed, trainer=trainer_stub, run_dir="runs"):
     """Run the entrant's own hand-written reward through the identical path."""
     source = Path(path).read_text()
-    record = _grade_one(source, "human_baseline", 0, goal, seed, trainer)
+    record = _grade_one(source, "human_baseline", 0, goal, seed, trainer,
+                        run_dir=run_dir)
     return {
         "source_path": str(path),
         "status": record["trainer"]["status"],
@@ -226,6 +231,10 @@ def run(
 ) -> dict:
     """Run the whole search. Returns the run record and writes it to disk."""
     trainer = _pick_trainer(trainer_name)
+    # Candidate ids repeat across searches -- seed 11 and seed 23 both produce
+    # an "r1c3" -- so every search gets its own policy directory. Without this
+    # the second search silently overwrites the first one's policies.
+    run_dir = f"runs/seed{seed}"
     out = Path(out_dir)
     (out / "prompts").mkdir(parents=True, exist_ok=True)
     run_path = out / "run.json"
@@ -244,6 +253,7 @@ def run(
             "candidate_source": source,
             "jobs": jobs,
             "steps_per_candidate": steps,
+            "policy_dir": run_dir,
             "trainer": trainer.name(),
             "scorer": scorer.name(),
             "candidate_source": "fixtures",
@@ -265,7 +275,7 @@ def run(
 
     if human_baseline_path and Path(human_baseline_path).exists():
         record["human_baseline"] = _human_baseline(
-            human_baseline_path, goal, seed, trainer
+            human_baseline_path, goal, seed, trainer, run_dir
         )  # baseline uses the trainer's own default step count
 
     best_source = None
@@ -309,7 +319,7 @@ def run(
         else:
             raise ValueError(f"unknown candidate source: {source!r}")
         records = _grade_batch(
-            batch, round_number, goal, seed, trainer_name, jobs, steps
+            batch, round_number, goal, seed, trainer_name, jobs, steps, run_dir
         )
         for graded, candidate in zip(records, batch):
             graded["source_path"] = candidate["source_path"]

@@ -317,6 +317,50 @@ def push_handling():
           result["measurements"]["recovery_time_s"] is None)
 
 
+def falling_early_does_not_hide_bad_driving():
+    """The flaw this caught: metrics averaged over surviving steps only.
+
+    `mean_speed_error` and `displacement_frac` were both computed over the part
+    of the episode the robot stayed upright, so falling early deleted the
+    evidence of bad driving. Measured on real data at a 0.9 m/s command, r1c3
+    scored a speed error of 0.212 over 92 control steps before falling, against
+    the hand-engineered MPC controller's 0.338 over 4,000 -- the robot that
+    crashed looked like the better driver.
+
+    Every other check in this file passed with that in place.
+    """
+    limit = eval_set.step_limit(200.0) if hasattr(eval_set, "step_limit") else 4000
+
+    # Same driving quality, one survives, one lunges and falls at 10%.
+    survivor = episode(commanded_speed=0.9, steps_survived=limit, step_limit=limit,
+                       mean_speed_error=0.30, net_displacement_m=0.9 * (limit / 200.0) * 0.6,
+                       episode_seconds=limit / 200.0, fell=False)
+    luncher = episode(commanded_speed=0.9, steps_survived=limit // 10, step_limit=limit,
+                      mean_speed_error=0.21, net_displacement_m=0.37,
+                      episode_seconds=(limit // 10) / 200.0, fell=True)
+
+    s_sur = scorer.score(rollout([survivor]), "survivor")
+    s_lun = scorer.score(rollout([luncher]), "luncher")
+
+    check(
+        "a policy that falls at 10% does not beat one that survives on speed error",
+        s_lun["measurements"]["mean_speed_error"]
+        > s_sur["measurements"]["mean_speed_error"],
+        f"luncher {s_lun['measurements']['mean_speed_error']} "
+        f"vs survivor {s_sur['measurements']['mean_speed_error']}",
+    )
+    check(
+        "the raw while-upright figure is still reported, so the two are auditable",
+        s_lun["measurements"]["mean_speed_error_while_up"] < 0.25,
+        str(s_lun["measurements"].get("mean_speed_error_while_up")),
+    )
+    check(
+        "and it scores lower overall",
+        s_lun["score"] < s_sur["score"],
+        f"{s_lun['score']} vs {s_sur['score']}",
+    )
+
+
 def tracking_has_no_dead_zone():
     """The bug the old grader had, and nothing here caught it.
 
@@ -392,6 +436,7 @@ if __name__ == "__main__":
     stationary_episode()
     blind_spots_are_preserved()
     push_handling()
+    falling_early_does_not_hide_bad_driving()
     tracking_has_no_dead_zone()
     tracking_matches_the_published_form()
     real_cheaters_parse()
