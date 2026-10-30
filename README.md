@@ -68,6 +68,8 @@ policies that already exist. Koda writes the objective for a robot that has none
 
 ## How it works
 
+Full diagram: [`ARCHITECTURE.md`](ARCHITECTURE.md). Real inter-round feedback: [`FEEDBACK_EXAMPLE.md`](FEEDBACK_EXAMPLE.md).
+
 1. Build a prompt from the environment source — the reward hole — plus the goal sentence.
 2. Strip the robot's identity from the prompt text before sending it (`sanitize.py`).
 3. **Nemotron 3 Super**, on **Nebius Token Factory**, returns 6 candidate reward functions.

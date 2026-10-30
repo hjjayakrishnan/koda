@@ -95,6 +95,19 @@ A weighted *geometric* mean rather than an average, so zero distance cannot be b
 with anything else, and by AM-GM it can never score higher than the average it replaced.
 Re-scored, that candidate fell from 0.3101 to 0.0026 and placed twelfth of seventeen.
 
+## How it works
+
+Full diagram in [`ARCHITECTURE.md`](ARCHITECTURE.md). The real text the model
+receives between rounds is in [`FEEDBACK_EXAMPLE.md`](FEEDBACK_EXAMPLE.md) —
+copied verbatim from a run, not reconstructed.
+
+One detail worth pulling out: the grader has deliberate blind spots. A test
+keeps a list of reward-shaping words — `jerk`, `action_rate`, `energy`,
+`smoothness`, `vibration` — and asserts our grader measures none of them, so
+the model has to discover those itself rather than have them handed over. It
+did: one candidate wrote its own `jerk_penalty` with nothing in the prompt
+suggesting it.
+
 ## How we built it
 
 Python, Stable-Baselines3 PPO, PyBullet, Upkie's own robot model and controllers.

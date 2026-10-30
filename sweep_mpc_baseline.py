@@ -151,6 +151,39 @@ def main() -> int:
             log_id = pybullet.startStateLogging(
                 pybullet.STATE_LOGGING_VIDEO_MP4, args.record,
                 physicsClientId=client)
+        if gui:
+            # Camera follow. Without it the robot drives out of frame in a few
+            # seconds -- it covers nearly 6 m in a 20 s episode at 0.6 m/s.
+            # Only the forward coordinate is overwritten, so a viewer can still
+            # rotate, zoom and pan while it runs.
+            import pybullet  # noqa: PLC0415
+            cam_client = int(wrapper.env.unwrapped.backend._bullet)
+            pybullet.resetDebugVisualizerCamera(
+                cameraDistance=2.2, cameraYaw=50, cameraPitch=-20,
+                cameraTargetPosition=[0.0, 0.0, 0.4],
+                physicsClientId=cam_client)
+            _orig_step = wrapper.step
+            _n = {"i": 0}
+
+            def _following_step(action, _o=_orig_step, _w=wrapper):
+                out = _o(action)
+                _n["i"] += 1
+                if _n["i"] % 10 == 0:
+                    try:
+                        x = float(out[4]["spine_observation"]
+                                  ["wheel_odometry"]["position"])
+                        cam = pybullet.getDebugVisualizerCamera(
+                            physicsClientId=cam_client)
+                        pybullet.resetDebugVisualizerCamera(
+                            cameraDistance=cam[10], cameraYaw=cam[8],
+                            cameraPitch=cam[9],
+                            cameraTargetPosition=[x, cam[11][1], cam[11][2]],
+                            physicsClientId=cam_client)
+                    except Exception:
+                        pass
+                return out
+            wrapper.step = _following_step
+
         try:
             record = trainer_pybullet._rollout_episode(
                 policy, tap, wrapper, episode)
