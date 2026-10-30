@@ -1,0 +1,349 @@
+
+
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Reward terms:
+    - speed_track: negative quadratic error for forward speed.
+    - yaw_track: negative quadratic error for yaw rate.
+    - upright: inverse quadratic reward for staying upright (max 1).
+    - joint_vel_penalty: penalizes high joint angular velocities.
+    - torque_penalty: penalizes squared joint torques.
+    - contact_bonus: small reward for maintaining ground contact.
+    """
+    # speed tracking
+    cmd_speed = state.get('commanded_speed', 0.0)
+    actual_speed = state.get('ground_velocity', 0.0)
+    speed_err = cmd_speed - actual_speed
+    speed_track = -0.4 * speed_err * speed_err
+
+    # yaw tracking
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    actual_yaw = state.get('yaw_rate', 0.0)
+    yaw_err = cmd_yaw - actual_yaw
+    yaw_track = -0.2 * yaw_err * yaw_err
+
+    # uprightness (inverse quadratic, max=1 at pitch=0)
+    pitch = state.get('pitch', 0.0)
+    upright = 1.0 / (1.0 + pitch * pitch)
+
+    # joint velocity smoothness penalty
+    joint_vel_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            joint_vel_sum += v * v
+    joint_vel_penalty = -0.00015 * joint_vel_sum
+
+    # torque effort penalty
+    torque_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            torque_sum += t * t
+    torque_penalty = -0.00025 * torque_sum
+
+    # contact encouragement
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.012 * contact
+
+    return {
+        'speed_track': speed_track,
+        'yaw_track': yaw_track,
+        'upright': upright,
+        'joint_vel_penalty': joint_vel_penalty,
+        'torque_penalty': torque_penalty,
+        'contact_bonus': contact_bonus,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Alternative design:
+    - survival bonus when upright and wheels touching ground.
+    - speed reward using exponential decay of error.
+    - yaw reward using exponential decay of error.
+    - pitch rate penalty (penalize fast tilting).
+    - joint acceleration proxy (change in velocity approximated by current velocity).
+    - torque penalty.
+    - action magnitude penalty to avoid aggressive commands.
+    """
+    # survival bonus
+    pitch = abs(state.get('pitch', 0.0))
+    contact = state.get('contact', 0.0)
+    survival = 0.02 if (pitch < 0.3 and contact > 0.5) else 0.0
+
+    # speed reward (exp decay)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    actual_speed = state.get('ground_velocity', 0.0)
+    speed_err = abs(cmd_speed - actual_speed)
+    speed_reward = 0.1 * math.exp(-speed_err / 0.2)
+
+    # yaw reward (exp decay)
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    actual_yaw = state.get('yaw_rate', 0.0)
+    yaw_err = abs(cmd_yaw - actual_yaw)
+    yaw_reward = 0.05 * math.exp(-yaw_err / 0.5)
+
+    # pitch rate penalty
+    pitch_rate = state.get('pitch_rate', 0.0)
+    pitch_rate_penalty = -0.03 * pitch_rate * pitch_rate
+
+    # joint velocity penalty (proxy for acceleration)
+    joint_vel_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            joint_vel_sum += v * v
+    joint_vel_penalty = -0.00012 * joint_vel_sum
+
+    # torque penalty
+    torque_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            torque_sum += t * t
+    torque_penalty = -0.00018 * torque_sum
+
+    # action magnitude penalty (discourage large commands)
+    ground_cmd = abs(action.get('ground_velocity', 0.0))
+    yaw_cmd = abs(action.get('yaw_velocity', 0.0))
+    action_penalty = -0.005 * (ground_cmd * ground_cmd + yaw_cmd * yaw_cmd)
+
+    return {
+        'survival': survival,
+        'speed_reward': speed_reward,
+        'yaw_reward': yaw_reward,
+        'pitch_rate_penalty': pitch_rate_penalty,
+        'joint_vel_penalty': joint_vel_penalty,
+        'torque_penalty': torque_penalty,
+        'action_penalty': action_penalty,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Energy‑aware reward:
+    - power penalty: torque * angular velocity summed over joints.
+    - speed tracking: negative quadratic error.
+    - yaw tracking: negative quadratic error.
+    - upright Gaussian.
+    - joint velocity penalty.
+    - contact bonus.
+    """
+    # power consumption approximation
+    power = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            power += abs(t * v)
+    power_penalty = -0.0005 * power
+
+    # speed tracking
+    cmd_speed = state.get('commanded_speed', 0.0)
+    act_speed = state.get('ground_velocity', 0.0)
+    sp_err = cmd_speed - act_speed
+    speed_track = -0.5 * sp_err * sp_err
+
+    # yaw tracking
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    act_yaw = state.get('yaw_rate', 0.0)
+    y_err = cmd_yaw - act_yaw
+    yaw_track = -0.3 * y_err * y_err
+
+    # upright Gaussian (sigma = 0.25 rad)
+    pitch = state.get('pitch', 0.0)
+    upright_gauss = math.exp(- (pitch * pitch) / (2 * 0.25 * 0.25))
+
+    # joint velocity penalty
+    jv2 = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            jv2 += v * v
+    joint_vel_penalty = -0.00008 * jv2
+
+    # contact bonus
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.01 * contact
+
+    return {
+        'power_penalty': power_penalty,
+        'speed_track': speed_track,
+        'yaw_track': yaw_track,
+        'upright_gauss': upright_gauss,
+        'joint_vel_penalty': joint_vel_penalty,
+        'contact_bonus': contact_bonus,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Reward focusing on smooth forward motion:
+    - forward speed reward proportional to actual velocity (clipped).
+    - penalty for deviating from commanded speed (linear).
+    - yaw alignment reward: cosine similarity between desired yaw rate and actual.
+    - pitch penalty (quadratic).
+    - joint torque smoothness (difference between left/right torques).
+    - contact bonus.
+    """
+    # forward speed reward (encourage moving forward)
+    fwd = state.get('ground_velocity', 0.0)
+    # clip negative values (reward only forward motion)
+    fwd_reward = 0.08 * max(fwd, 0.0)
+
+    # speed tracking linear penalty
+    cmd_speed = state.get('commanded_speed', 0.0)
+    speed_err = cmd_speed - fwd
+    speed_lin_pen = -0.1 * abs(speed_err)
+
+    # yaw alignment via cosine (approx using dot product normalized)
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    act_yaw = state.get('yaw_rate', 0.0)
+    # avoid division by zero
+    norm = math.sqrt(max(cmd_yaw*cmd_yaw + 1e-8, 1e-8)) * math.sqrt(max(act_yaw*act_yaw + 1e-8, 1e-8))
+    yaw_cos = (cmd_yaw * act_yaw) / norm if norm != 0 else 0.0
+    yaw_align = 0.05 * yaw_cos  # max 0.05 when aligned
+
+    # pitch penalty
+    pitch = state.get('pitch', 0.0)
+    pitch_pen = -0.04 * pitch * pitch
+
+    # torque symmetry penalty (encourage equal left/right effort)
+    left_torque = (state.get('left_hip_torque',0.0) +
+                   state.get('left_knee_torque',0.0) +
+                   state.get('left_wheel_torque',0.0))
+    right_torque = (state.get('right_hip_torque',0.0) +
+                    state.get('right_knee_torque',0.0) +
+                    state.get('right_wheel_torque',0.0))
+    torque_sym = -0.0002 * (left_torque - right_torque) ** 2
+
+    # contact bonus
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.015 * contact
+
+    return {
+        'fwd_reward': fwd_reward,
+        'speed_lin_pen': speed_lin_pen,
+        'yaw_align': yaw_align,
+        'pitch_pen': pitch_pen,
+        'torque_sym': torque_sym,
+        'contact_bonus': contact_bonus,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Minimalist reward:
+    - constant step bonus for staying alive (contact & small pitch).
+    - speed tracking using Huber loss (quadratic small error, linear large).
+    - yaw tracking using Huber loss.
+    - joint torque L1 penalty.
+    - joint velocity L2 penalty.
+    """
+    # alive bonus
+    pitch = abs(state.get('pitch', 0.0))
+    contact = state.get('contact', 0.0)
+    alive_bonus = 0.01 if (contact > 0.5 and pitch < 0.4) else 0.0
+
+    # Huber loss for speed (delta = 0.2)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    act_speed = state.get('ground_velocity', 0.0)
+    speed_err = cmd_speed - act_speed
+    if abs(speed_err) <= 0.2:
+        speed_loss = 0.5 * speed_err * speed_err
+    else:
+        speed_loss = 0.2 * (abs(speed_err) - 0.5 * 0.2)
+    speed_track = -speed_loss
+
+    # Huber loss for yaw (delta = 0.3)
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    act_yaw = state.get('yaw_rate', 0.0)
+    yaw_err = cmd_yaw - act_yaw
+    if abs(yaw_err) <= 0.3:
+        yaw_loss = 0.5 * yaw_err * yaw_err
+    else:
+        yaw_loss = 0.3 * (abs(yaw_err) - 0.5 * 0.3)
+    yaw_track = -0.5 * yaw_loss  # weight lower
+
+    # joint torque L1 penalty
+    torque_l1 = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            torque_l1 += abs(t)
+    torque_penalty = -0.0004 * torque_l1
+
+    # joint velocity L2 penalty
+    jv2 = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            jv2 += v * v
+    joint_vel_penalty = -0.00007 * jv2
+
+    return {
+        'alive_bonus': alive_bonus,
+        'speed_track': speed_track,
+        'yaw_track': yaw_track,
+        'torque_penalty': torque_penalty,
+        'joint_vel_penalty': joint_vel_penalty,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Reward based on Lyapunov-like stability:
+    - V = pitch^2 + pitch_rate^2 (penalize).
+    - forward progress reward: change in ground position approximated by ground_velocity * dt.
+    - directional alignment reward: dot product of velocity vector [ground_velocity, 0]
+                                  with desired direction [commanded_speed, 0].
+    - control effort: squared action values.
+    - contact bonus.
+    """
+    # Lyapunov penalty
+    pitch = state.get('pitch', 0.0)
+    pitch_rate = state.get('pitch_rate', 0.0)
+    lyap_pen = -0.06 * (pitch * pitch + pitch_rate * pitch_rate)
+
+    # forward progress (using dt as scaling factor)
+    dt = state.get('dt', 0.01)  # fallback small dt if missing
+    progress = state.get('ground_velocity', 0.0) * dt
+    progress_reward = 0.5 * progress  # reward forward motion
+
+    # directional alignment (cosine of speed error)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    act_speed = state.get('ground_velocity', 0.0)
+    # simple alignment reward: higher when signs match and magnitudes close
+    align = math.tanh(cmd_speed) * math.tanh(act_speed)  # range [-1,1]
+    align_reward = 0.08 * align
+
+    # control effort penalty (actions)
+    gcmd = action.get('ground_velocity', 0.0)
+    ycmd = action.get('yaw_velocity', 0.0)
+    effort_pen = -0.004 * (gcmd * gcmd + ycmd * ycmd)
+
+    # contact bonus
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.012 * contact
+
+    return {
+        'lyap_pen': lyap_pen,
+        'progress_reward': progress_reward,
+        'align_reward': align_reward,
+        'effort_pen': effort_pen,
+        'contact_bonus': contact_bonus,
+    }
+}
