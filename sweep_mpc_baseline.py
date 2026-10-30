@@ -83,6 +83,9 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--headless", action="store_true",
                    help="no window, numbers only. A window is the default.")
+    p.add_argument("--wait", action="store_true",
+                   help="open the window and wait for Enter before the first "
+                        "episode. Start your screen recorder during the wait.")
     p.add_argument("--speed", type=float, default=None,
                    help="only run episodes at this commanded speed")
     p.add_argument("--out", default="out/mpc_baseline")
@@ -102,6 +105,16 @@ def main() -> int:
           f"push {eval_set.PUSH_NEWTONS} N\n")
     if gui:
         print("A PyBullet window should open. Ctrl-C to stop.\n")
+
+    if args.wait and gui:
+        # No window yet -- the first episode opens it. So: recorder first,
+        # Enter, then the window appears and the robot starts immediately.
+        print("\n  Start your screen recorder now, then press Enter here.")
+        print("  The window opens as soon as you do.\n")
+        try:
+            input()
+        except EOFError:
+            pass
 
     records = []
     solver_failures = 0

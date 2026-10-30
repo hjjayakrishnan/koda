@@ -41,6 +41,10 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=11)
     parser.add_argument("--headless", action="store_true",
                         help="no window, just print the numbers")
+    parser.add_argument("--wait", action="store_true",
+                        help="open the window, hold the robot still, and wait "
+                             "for Enter before moving. Start your screen "
+                             "recorder during the wait.")
     parser.add_argument("--no-follow", action="store_true",
                         help="leave the camera completely alone. The robot "
                              "will drive out of frame, but nothing fights "
@@ -123,6 +127,14 @@ def main() -> int:
         print("           the camera tracks the robot forward; your angle, "
               "zoom and pan are kept")
         print("           --no-follow leaves the camera completely alone\n")
+    if args.wait and not args.headless:
+        print("\n  Window is open and the robot is holding still.")
+        print("  Start your screen recorder now, then press Enter here.\n")
+        try:
+            input()
+        except EOFError:
+            pass
+
     worst_pitch = 0.0
     total_reward = 0.0
     fell = False
