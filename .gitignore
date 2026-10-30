@@ -53,3 +53,7 @@ runs/*/seed*/*/*
 
 # Scratch explanation written for the user, not part of the project
 block_diagram.md
+
+# Rendered video: regenerate with record_clip commands in README
+clips/*.mp4
+!clips/koda_submission.mp4

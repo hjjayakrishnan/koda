@@ -20,6 +20,7 @@ across episode boundaries any more than the simulator should.
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -83,6 +84,11 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--headless", action="store_true",
                    help="no window, numbers only. A window is the default.")
+    p.add_argument("--record", default=None, metavar="FILE.mp4",
+                   help="record to MP4 with PyBullet's own "
+                        "STATE_LOGGING_VIDEO_MP4. Needs ffmpeg on PATH -- "
+                        "without it PyBullet writes nothing and reports "
+                        "nothing, so this checks first.")
     p.add_argument("--wait", action="store_true",
                    help="open the window and wait for Enter before the first "
                         "episode. Start your screen recorder during the wait.")
@@ -116,18 +122,43 @@ def main() -> int:
         except EOFError:
             pass
 
+    if args.record:
+        if shutil.which("ffmpeg") is None:
+            print("ffmpeg is not on PATH. PyBullet's MP4 logger needs it and "
+                  "fails silently without it.  sudo apt install ffmpeg")
+            return 1
+        if not gui:
+            print("--record needs the window; drop --headless.")
+            return 1
+        Path(args.record).parent.mkdir(parents=True, exist_ok=True)
+        # One episode only: the logger attaches to a physics client, and R4
+        # gives every episode a fresh one, so a recording cannot span them.
+        episodes = episodes[:1]
+        print(f"Recording:  {args.record}  (first episode only)")
+
     records = []
     solver_failures = 0
+    log_id = None
     for index, episode in enumerate(episodes, 1):
         # R4: a fresh environment per episode, and a fresh controller with it.
         env = reward_env.make_env(_no_reward, gui=gui)
         wrapper = reward_env.find_reward_wrapper(env)
         tap = _InfoTap(env)
         policy = _MPCPolicy(tap, wrapper, dt=1.0 / reward_env.FREQUENCY)
+        if args.record:
+            import pybullet  # noqa: PLC0415
+            client = int(wrapper.env.unwrapped.backend._bullet)
+            log_id = pybullet.startStateLogging(
+                pybullet.STATE_LOGGING_VIDEO_MP4, args.record,
+                physicsClientId=client)
         try:
             record = trainer_pybullet._rollout_episode(
                 policy, tap, wrapper, episode)
         finally:
+            if log_id is not None:
+                import pybullet  # noqa: PLC0415
+                pybullet.stopStateLogging(log_id, physicsClientId=client)
+                log_id = None
             solver_failures += policy.solver_failures
             env.close()
         records.append(record)

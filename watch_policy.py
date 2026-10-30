@@ -11,6 +11,7 @@ Opens a PyBullet window by default so you can see what it learned.
 
 import argparse
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -41,6 +42,11 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=11)
     parser.add_argument("--headless", action="store_true",
                         help="no window, just print the numbers")
+    parser.add_argument("--record", default=None, metavar="FILE.mp4",
+                        help="record the window to MP4 using PyBullet's own "
+                             "STATE_LOGGING_VIDEO_MP4. Needs ffmpeg on PATH; "
+                             "without it PyBullet writes nothing and says "
+                             "nothing, so this checks.")
     parser.add_argument("--wait", action="store_true",
                         help="open the window, hold the robot still, and wait "
                              "for Enter before moving. Start your screen "
@@ -127,6 +133,22 @@ def main() -> int:
         print("           the camera tracks the robot forward; your angle, "
               "zoom and pan are kept")
         print("           --no-follow leaves the camera completely alone\n")
+    log_id = None
+    if args.record:
+        if shutil.which("ffmpeg") is None:
+            print("ffmpeg is not on PATH. PyBullet's MP4 logger needs it and "
+                  "fails silently without it.  sudo apt install ffmpeg")
+            return 1
+        if client_id is None:
+            print("--record needs the PyBullet window; drop --headless.")
+            return 1
+        import pybullet  # noqa: PLC0415
+        Path(args.record).parent.mkdir(parents=True, exist_ok=True)
+        log_id = pybullet.startStateLogging(
+            pybullet.STATE_LOGGING_VIDEO_MP4, args.record,
+            physicsClientId=client_id)
+        print(f"Recording:  {args.record}")
+
     if args.wait and not args.headless:
         print("\n  Window is open and the robot is holding still.")
         print("  Start your screen recorder now, then press Enter here.\n")
@@ -171,6 +193,10 @@ def main() -> int:
                 break
     except KeyboardInterrupt:
         print("\nStopped.")
+    finally:
+        if log_id is not None:
+            import pybullet  # noqa: PLC0415
+            pybullet.stopStateLogging(log_id, physicsClientId=client_id)
 
     seconds = done / reward_env.FREQUENCY
     spine = info["spine_observation"]
