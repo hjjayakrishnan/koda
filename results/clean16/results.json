@@ -1,0 +1,710 @@
+[
+  {
+    "name": "s12_r1c1",
+    "path": "results/search_12/candidates/round1/r1c1.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s12_r1c1",
+      "scorer": "koda-v1",
+      "score": 0.0014,
+      "per_speed": {
+        "0.3": 0.0029,
+        "0.6": 0.0012,
+        "0.9": 0.0004
+      },
+      "measurements": {
+        "survival_frac": 0.0351,
+        "mean_speed_error_while_up": 0.2771,
+        "mean_speed_error": 0.591,
+        "displacement_frac": 0.0151,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.36,
+        "closest_joint_margin_deg": 71.49,
+        "peak_torque_frac_leg": 0.1688,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.4555,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 22.2
+  },
+  {
+    "name": "s12_r1c2",
+    "path": "results/search_12/candidates/round1/r1c2.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s12_r1c2",
+      "scorer": "koda-v1",
+      "score": 0.0,
+      "per_speed": {
+        "0.3": 0.0014,
+        "0.6": 0.0,
+        "0.9": 0.0
+      },
+      "measurements": {
+        "survival_frac": 0.272,
+        "mean_speed_error_while_up": 1.8484,
+        "mean_speed_error": 0.9138,
+        "displacement_frac": -0.0938,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.72,
+        "closest_joint_margin_deg": 66.06,
+        "peak_torque_frac_leg": 0.2528,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.9811,
+        "recovery_time_s": null,
+        "non_recovery_count": 5,
+        "disturbed_count": 5,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over",
+        "never_recovered_from_disturbance"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 22.6
+  },
+  {
+    "name": "s12_r1c3",
+    "path": "results/search_12/candidates/round1/r1c3.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s12_r1c3",
+      "scorer": "koda-v1",
+      "score": 0.0018,
+      "per_speed": {
+        "0.3": 0.0048,
+        "0.6": 0.0012,
+        "0.9": 0.0003
+      },
+      "measurements": {
+        "survival_frac": 0.0409,
+        "mean_speed_error_while_up": 0.2989,
+        "mean_speed_error": 0.5911,
+        "displacement_frac": 0.0149,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.36,
+        "closest_joint_margin_deg": 71.45,
+        "peak_torque_frac_leg": 0.1932,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.3848,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 22.1
+  },
+  {
+    "name": "s12_r1c4",
+    "path": "results/search_12/candidates/round1/r1c4.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s12_r1c4",
+      "scorer": "koda-v1",
+      "score": 0.0,
+      "per_speed": {
+        "0.3": 0.0,
+        "0.6": 0.0,
+        "0.9": 0.0
+      },
+      "measurements": {
+        "survival_frac": 1.0,
+        "mean_speed_error_while_up": 1.1422,
+        "mean_speed_error": 1.1422,
+        "displacement_frac": -0.825,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 4.66,
+        "closest_joint_margin_deg": 65.78,
+        "peak_torque_frac_leg": 0.2751,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.9787,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 0,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 24.7
+  },
+  {
+    "name": "s12_r1c5",
+    "path": "results/search_12/candidates/round1/r1c5.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s12_r1c5",
+      "scorer": "koda-v1",
+      "score": 0.0219,
+      "per_speed": {
+        "0.3": 0.1147,
+        "0.6": 0.0108,
+        "0.9": 0.0003
+      },
+      "measurements": {
+        "survival_frac": 0.5007,
+        "mean_speed_error_while_up": 0.5138,
+        "mean_speed_error": 0.6139,
+        "displacement_frac": 0.0233,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.39,
+        "closest_joint_margin_deg": 69.1,
+        "peak_torque_frac_leg": 0.2117,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.502,
+        "recovery_time_s": 0.125,
+        "non_recovery_count": 1,
+        "disturbed_count": 2,
+        "fell_count": 11,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 24.0
+  },
+  {
+    "name": "s12_r1c6",
+    "path": "results/search_12/candidates/round1/r1c6.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s12_r1c6",
+      "scorer": "koda-v1",
+      "score": 0.0115,
+      "per_speed": {
+        "0.3": 0.0187,
+        "0.6": 0.0137,
+        "0.9": 0.0028
+      },
+      "measurements": {
+        "survival_frac": 0.394,
+        "mean_speed_error_while_up": 0.785,
+        "mean_speed_error": 0.6859,
+        "displacement_frac": 0.71,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.6,
+        "closest_joint_margin_deg": 70.56,
+        "peak_torque_frac_leg": 0.1954,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.9043,
+        "recovery_time_s": null,
+        "non_recovery_count": 4,
+        "disturbed_count": 4,
+        "fell_count": 18,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over",
+        "never_recovered_from_disturbance"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 23.5
+  },
+  {
+    "name": "s14_r1c1",
+    "path": "results/search_14/candidates/round1/r1c1.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s14_r1c1",
+      "scorer": "koda-v1",
+      "score": 0.0327,
+      "per_speed": {
+        "0.3": 0.0,
+        "0.6": 0.0331,
+        "0.9": 0.0235
+      },
+      "measurements": {
+        "survival_frac": 1.0,
+        "mean_speed_error_while_up": 0.5967,
+        "mean_speed_error": 0.5967,
+        "displacement_frac": 0.0029,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 2.34,
+        "closest_joint_margin_deg": 71.05,
+        "peak_torque_frac_leg": 0.1307,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.005,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 0,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 26.3
+  },
+  {
+    "name": "s14_r1c2",
+    "path": "results/search_14/candidates/round1/r1c2.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s14_r1c2",
+      "scorer": "koda-v1",
+      "score": 0.0023,
+      "per_speed": {
+        "0.3": 0.0149,
+        "0.6": 0.0002,
+        "0.9": 0.0
+      },
+      "measurements": {
+        "survival_frac": 0.032,
+        "mean_speed_error_while_up": 1.634,
+        "mean_speed_error": 0.6255,
+        "displacement_frac": 0.0794,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.75,
+        "closest_joint_margin_deg": 69.94,
+        "peak_torque_frac_leg": 0.1999,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.5266,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 21.5
+  },
+  {
+    "name": "s14_r1c3",
+    "path": "results/search_14/candidates/round1/r1c3.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s14_r1c3",
+      "scorer": "koda-v1",
+      "score": 0.0348,
+      "per_speed": {
+        "0.3": 0.032,
+        "0.6": 0.0267,
+        "0.9": 0.029
+      },
+      "measurements": {
+        "survival_frac": 0.3148,
+        "mean_speed_error_while_up": 1.081,
+        "mean_speed_error": 0.7313,
+        "displacement_frac": 0.9327,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 59.06,
+        "closest_joint_margin_deg": 65.11,
+        "peak_torque_frac_leg": 0.2821,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.6424,
+        "recovery_time_s": 1.62,
+        "non_recovery_count": 3,
+        "disturbed_count": 4,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 22.7
+  },
+  {
+    "name": "s14_r1c4",
+    "path": "results/search_14/candidates/round1/r1c4.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s14_r1c4",
+      "scorer": "koda-v1",
+      "score": 0.038,
+      "per_speed": {
+        "0.3": 0.0444,
+        "0.6": 0.0505,
+        "0.9": 0.0075
+      },
+      "measurements": {
+        "survival_frac": 1.0,
+        "mean_speed_error_while_up": 0.6442,
+        "mean_speed_error": 0.6442,
+        "displacement_frac": 0.0108,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 16.32,
+        "closest_joint_margin_deg": 66.5,
+        "peak_torque_frac_leg": 0.2441,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.2264,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 0,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 25.3
+  },
+  {
+    "name": "s14_r1c5",
+    "path": "results/search_14/candidates/round1/r1c5.py",
+    "status": "dead_gate1"
+  },
+  {
+    "name": "s13_r1c1",
+    "path": "out/search_13/seed11/candidates/round1/r1c1.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s13_r1c1",
+      "scorer": "koda-v1",
+      "score": 0.0011,
+      "per_speed": {
+        "0.3": 0.0,
+        "0.6": 0.0016,
+        "0.9": 0.0004
+      },
+      "measurements": {
+        "survival_frac": 0.0409,
+        "mean_speed_error_while_up": 0.4371,
+        "mean_speed_error": 0.5956,
+        "displacement_frac": 0.0088,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.32,
+        "closest_joint_margin_deg": 71.12,
+        "peak_torque_frac_leg": 0.2253,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.4761,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 22.4
+  },
+  {
+    "name": "s13_r1c2",
+    "path": "out/search_13/seed11/candidates/round1/r1c2.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s13_r1c2",
+      "scorer": "koda-v1",
+      "score": 0.001,
+      "per_speed": {
+        "0.3": 0.0027,
+        "0.6": 0.001,
+        "0.9": 0.0002
+      },
+      "measurements": {
+        "survival_frac": 0.0374,
+        "mean_speed_error_while_up": 0.3743,
+        "mean_speed_error": 0.5919,
+        "displacement_frac": 0.0216,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.51,
+        "closest_joint_margin_deg": 71.27,
+        "peak_torque_frac_leg": 0.1569,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.6759,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 21.8
+  },
+  {
+    "name": "s13_r1c3",
+    "path": "out/search_13/seed11/candidates/round1/r1c3.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s13_r1c3",
+      "scorer": "koda-v1",
+      "score": 0.0,
+      "per_speed": {
+        "0.3": 0.0,
+        "0.6": 0.0,
+        "0.9": 0.0
+      },
+      "measurements": {
+        "survival_frac": 1.0,
+        "mean_speed_error_while_up": 0.849,
+        "mean_speed_error": 0.849,
+        "displacement_frac": -0.381,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 8.72,
+        "closest_joint_margin_deg": 67.91,
+        "peak_torque_frac_leg": 0.2557,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.8407,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 0,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 22.1
+  },
+  {
+    "name": "s13_r1c4",
+    "path": "out/search_13/seed11/candidates/round1/r1c4.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s13_r1c4",
+      "scorer": "koda-v1",
+      "score": 0.0003,
+      "per_speed": {
+        "0.3": 0.0012,
+        "0.6": 0.0002,
+        "0.9": 0.0
+      },
+      "measurements": {
+        "survival_frac": 0.0175,
+        "mean_speed_error_while_up": 1.1046,
+        "mean_speed_error": 0.6091,
+        "displacement_frac": 0.0555,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.56,
+        "closest_joint_margin_deg": 71.07,
+        "peak_torque_frac_leg": 0.2063,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.8698,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 18.3
+  },
+  {
+    "name": "s13_r1c5",
+    "path": "out/search_13/seed11/candidates/round1/r1c5.py",
+    "status": "trained",
+    "score": {
+      "schema_version": "2.0",
+      "candidate_id": "s13_r1c5",
+      "scorer": "koda-v1",
+      "score": 0.0,
+      "per_speed": {
+        "0.3": 0.0,
+        "0.6": 0.0,
+        "0.9": 0.0
+      },
+      "measurements": {
+        "survival_frac": 0.1736,
+        "mean_speed_error_while_up": 1.2123,
+        "mean_speed_error": 0.7064,
+        "displacement_frac": -0.231,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.7,
+        "closest_joint_margin_deg": 69.99,
+        "peak_torque_frac_leg": 0.1769,
+        "peak_torque_frac_wheel": 1.0,
+        "saturated_step_frac_leg": 0.0,
+        "saturated_step_frac_wheel": 0.909,
+        "recovery_time_s": null,
+        "non_recovery_count": 0,
+        "disturbed_count": 0,
+        "fell_count": 20,
+        "episode_count": 20
+      },
+      "active_measurements": [
+        "survival_frac",
+        "saturated_step_frac_wheel",
+        "mean_speed_error",
+        "displacement_frac",
+        "heading_error_deg"
+      ],
+      "violations": [
+        "wheel_torque_exceeded",
+        "fell_over"
+      ],
+      "scorer_sha": "22289de"
+    },
+    "minutes": 19.6
+  }
+]
