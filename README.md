@@ -317,6 +317,19 @@ the prompt contents, killed, fixed, and covered by a regression test.
 
 ---
 
+## Feedback on Nebius and NVIDIA tools
+
+Required for submission and written from our run records rather than
+impressions: [`FEEDBACK.md`](FEEDBACK.md). Short version — the OpenAI-compatible
+endpoint removed the integration step entirely, 14 calls ran with zero failures
+and no retry logic, and the `usage` field is why we can publish an exact token
+bill. The one measurable problem: 5 of 69 generated candidates failed to
+compile, all bracket-matching errors, all in position 5 or 6 of a 6-sample
+completion. And the thing that surprised us — our bottleneck was CPU for
+simulation, not GPU and not inference.
+
+---
+
 ## Prior art
 
 | Work | Relationship |
