@@ -18,6 +18,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from koda import candidates, gate1, reward_env  # noqa: E402
+from koda import trainer_pybullet  # noqa: E402
 
 
 def newest_policy() -> Path | None:
@@ -65,7 +66,7 @@ def main() -> int:
     else:
         reward_fn = lambda state, action: {}  # noqa: E731
 
-    from stable_baselines3 import PPO  # noqa: PLC0415
+
 
     print(f"Policy:    {policy_path}")
     print(f"Reward:    {args.reward or '(none -- not needed to watch)'}")
@@ -77,7 +78,16 @@ def main() -> int:
     env = reward_env.make_env(
         reward_fn, gui=not args.headless, fixed_speed=args.speed
     )
-    model = PPO.load(policy_path, device="cpu")
+    # load_policy, not PPO.load: policies trained with observation
+    # normalisation keep their statistics in vecnormalize.pkl beside the zip.
+    # Loading the zip alone feeds raw observations to a network trained on
+    # normalised ones, which looks like a broken policy rather than a broken
+    # load.
+    model = trainer_pybullet.load_policy(policy_path)
+    if getattr(model, "vecnorm", None) is not None:
+        print("Normalisation: loaded from vecnormalize.pkl")
+    else:
+        print("Normalisation: none saved with this policy")
 
     steps = int(args.seconds * reward_env.FREQUENCY)
     observation, info = env.reset(seed=args.seed)

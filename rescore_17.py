@@ -49,7 +49,7 @@ def rescore(candidate_id, episodes_wanted):
     source = find_source(candidate_id)
     text = source.read_text()
     reward_fn = gate1.check(text, candidate_id)["reward_fn"]
-    model = PPO.load(str(POLICIES / candidate_id / "policy.zip"), device="cpu")
+    model = T.load_policy(POLICIES / candidate_id / "policy.zip")
 
     episodes = []
     for episode in episodes_wanted:

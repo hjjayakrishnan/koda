@@ -43,6 +43,103 @@ TORQUE_LIMIT_NM = {
 }
 
 DEFAULT_STEPS = 30_000
+
+# PPO settings, taken verbatim from rl_zoo3_balancer's hyperparams.yml for
+# Upkie-PyBullet-Pendulum-Shaped. That is a third-party Stable-Baselines3 PPO
+# balancer for THIS robot, so its settings are a tuned reference point rather
+# than our guesses.
+#
+# Measured on r3c1, identical reward, identical seed, only these changing:
+#
+#     500k, SB3 defaults   score 0.1468   survival 0.638
+#     1M,   SB3 defaults   score 0.1617   survival 0.622
+#     500k, these          score 0.1981   survival 0.765
+#     1M,   these          score 0.2286   survival 0.920
+#
+# GAMMA is the one that matters. The effective horizon is about 1/(1-gamma)
+# control steps, and reward_env.FREQUENCY is 200 Hz:
+#
+#     0.99  -> ~100 steps  = 0.5 s      SB3's default
+#     0.999 -> ~1000 steps = 5.0 s      this
+#
+# The robot is non-minimum phase: it must drive its wheels BACKWARD for roughly
+# half a second before it can accelerate forward. At 0.99 that manoeuvre never
+# pays off inside the horizon the agent can see, so it learns to stay upright
+# and not drive -- which is exactly what every search produced before this.
+GAMMA = 0.999
+LEARNING_RATE_START = 0.003   # decays linearly to 0, rl_zoo3's "lin_0.003"
+CLIP_RANGE = 0.1
+N_STEPS = 2048
+BATCH_SIZE = 64
+N_EPOCHS = 10
+GAE_LAMBDA = 0.95
+ENT_COEF = 0.0
+NET_ARCH = {"pi": [16, 16], "vf": [32, 32]}
+NORMALIZE_OBSERVATIONS = True
+CLIP_OBS = 10.0
+
+# Saved beside policy.zip. The policy is trained on NORMALISED observations, so
+# a caller that loads policy.zip alone and feeds it raw observations gets a
+# network operating on inputs it has never seen -- which looks like a bad policy
+# rather than a loading bug. `load_policy` keeps the two together.
+VECNORM_FILENAME = "vecnormalize.pkl"
+
+
+def learning_rate_schedule(start=LEARNING_RATE_START):
+    """rl_zoo3's `lin_<x>`: decays linearly from x to 0 across training."""
+    def schedule(progress_remaining):
+        return progress_remaining * start
+    return schedule
+
+
+class NormalisedPolicy:
+    """A policy plus the observation statistics it was trained with.
+
+    `_rollout_episode` drives a plain gym environment, so the normalisation has
+    to travel with the policy rather than wrapping the environment. Without
+    this the scored episodes feed raw observations to a network trained on
+    normalised ones.
+    """
+
+    def __init__(self, model, vecnorm):
+        self.model = model
+        self.vecnorm = vecnorm
+
+    def predict(self, observation, deterministic=True):
+        if self.vecnorm is not None:
+            observation = self.vecnorm.normalize_obs(
+                np.asarray(observation, dtype=np.float32)
+            )
+        return self.model.predict(observation, deterministic=deterministic)
+
+
+def load_policy(policy_path):
+    """Load a policy together with its observation statistics, if any.
+
+    Use this everywhere a saved policy is replayed -- scoring, watching,
+    re-scoring. Loading policy.zip directly is only correct for policies
+    trained before normalisation was turned on.
+    """
+    import pickle  # noqa: PLC0415
+
+    from stable_baselines3 import PPO  # noqa: PLC0415
+
+    policy_path = Path(policy_path)
+    model = PPO.load(str(policy_path), device="cpu")
+    stats = policy_path.parent / VECNORM_FILENAME
+    if not stats.exists():
+        return NormalisedPolicy(model, None)
+
+    # Unpickled directly rather than via VecNormalize.load(), which requires a
+    # live vector env and raises `AttributeError: 'NoneType' object has no
+    # attribute 'num_envs'` when given None. Replaying a saved policy needs the
+    # statistics, not an environment to attach them to -- `normalize_obs` only
+    # touches obs_rms, clip_obs and epsilon. A test covers this.
+    with open(stats, "rb") as handle:
+        vecnorm = pickle.load(handle)
+    vecnorm.training = False       # never update statistics while scoring
+    vecnorm.norm_reward = False
+    return NormalisedPolicy(model, vecnorm)
 EVAL_SECONDS = eval_set.EPISODE_SECONDS
 EVAL_STEPS = eval_set.step_limit(reward_env.FREQUENCY)
 PUSH_STEP = eval_set.push_step(reward_env.FREQUENCY)
@@ -311,12 +408,33 @@ def train(
     try:
         from stable_baselines3 import PPO  # noqa: PLC0415
 
+        from stable_baselines3.common.vec_env import (  # noqa: PLC0415
+            DummyVecEnv, VecNormalize,
+        )
+
         env = reward_env.make_env(reward_fn, seed=seed, gui=False,
                                   max_steps=EVAL_STEPS,
                                   ramp_setpoint=ramp_setpoint,
                                   total_steps=total_steps)
         wrapper = reward_env.find_reward_wrapper(env)
-        model = PPO("MlpPolicy", env, seed=seed, verbose=0, device="cpu")
+
+        # Observation normalisation wraps a vector env, so the single env is
+        # wrapped in DummyVecEnv. `norm_reward` stays FALSE: the reward is the
+        # candidate's own function and scaling it would change what is being
+        # searched for.
+        train_env = DummyVecEnv([lambda: env])
+        if NORMALIZE_OBSERVATIONS:
+            train_env = VecNormalize(train_env, norm_obs=True,
+                                     norm_reward=False, clip_obs=CLIP_OBS)
+
+        model = PPO(
+            "MlpPolicy", train_env, seed=seed, verbose=0, device="cpu",
+            learning_rate=learning_rate_schedule(),
+            gamma=GAMMA, clip_range=CLIP_RANGE, n_steps=N_STEPS,
+            batch_size=BATCH_SIZE, n_epochs=N_EPOCHS,
+            gae_lambda=GAE_LAMBDA, ent_coef=ENT_COEF,
+            policy_kwargs={"net_arch": dict(NET_ARCH)},
+        )
 
         callback = _make_checkpoint_callback(total_steps)
         model.learn(total_timesteps=total_steps, callback=callback,
@@ -326,6 +444,14 @@ def train(
         policy_dir.mkdir(parents=True, exist_ok=True)
         policy_path = policy_dir / "policy.zip"
         model.save(policy_path)
+        if NORMALIZE_OBSERVATIONS:
+            # Saved BESIDE the policy, always. A policy.zip without these is
+            # unusable: the network expects normalised inputs.
+            train_env.training = False
+            train_env.save(str(policy_dir / VECNORM_FILENAME))
+            scoring_policy = NormalisedPolicy(model, train_env)
+        else:
+            scoring_policy = NormalisedPolicy(model, None)
 
         result["terms"] = {
             "checkpoints": callback.checkpoints_hit,
@@ -351,7 +477,8 @@ def train(
             ep_wrapper = reward_env.find_reward_wrapper(ep_env)
             try:
                 episodes.append(
-                    _rollout_episode(model, ep_env, ep_wrapper, episode)
+                    _rollout_episode(scoring_policy, ep_env, ep_wrapper,
+                                     episode)
                 )
             finally:
                 ep_env.close()
