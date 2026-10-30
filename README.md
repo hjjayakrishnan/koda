@@ -2,6 +2,14 @@
 
 **Give it a robot and one sentence. Get back the reward function and a trained robot.**
 
+Koda is [Eureka](https://arxiv.org/abs/2310.12931) reproduced on a mini PC — **no GPU, 16
+CPU threads, 1/22nd of Eureka's search budget.** NVIDIA Nemotron 3 Super writes reward
+functions on Nebius Token Factory, PPO trains each one in PyBullet, a grader the model
+never sees scores the result, and the numbers go back to the model.
+
+**It did not beat the hand-written controller.** The useful part is what we found while
+measuring why, and all of it is in this repo beside the code that produced it.
+
 ```
 koda run --robot upkie --goal "balance upright and drive forward at the commanded speed"
 ```
@@ -13,14 +21,6 @@ out/
   report.html         every candidate, every score, the model's reasoning, the videos
   bill.txt            the exact cost, failed runs included
 ```
-
-<!--
-  INTERNAL NOTE — not rendered on GitHub, and intentionally not a visible TODO.
-  Plan §9.8 forbids placeholder text in anything a judge sees, so every pending
-  item in this file is an HTML comment. Find them all before the Oct 27 draft
-  submission with:  grep -n 'PENDING(koda)' README.md
-  None may survive to the final submission.
--->
 
 ---
 
@@ -116,11 +116,12 @@ grader's code — only grade values. Every reward function in this repository th
 | Gate 1 candidate checking, 6 in parallel | Nebius Serverless Jobs |
 | All policy training and scoring | Nebius AI Cloud, CPU instance |
 
-All training executes on Nebius AI Cloud. The orchestrator and report generation run on
-a laptop.
-
-<!-- PENDING(koda): replace this comment with the measured cost once the runs are done.
-     Plan §9.7 requires publishing the exact bill including failed runs. -->
+**Correction, stated plainly:** an earlier draft of this file said training ran on Nebius
+AI Cloud. It did not. Nebius Token Factory served every Nemotron call — that part is real
+and the token counts are below — but **all PPO training ran locally on a 16-thread AMD
+Ryzen 7 5800H with no GPU.** PyBullet is CPU-bound, so a rented GPU would not have helped;
+what the hardware limits is how many reward candidates can be tried, which is the whole
+subject of Finding 2.
 
 ---
 
@@ -141,10 +142,151 @@ balance effector, and at 1.7 Nm they are the tightest constraint on the machine.
 
 ## Results
 
-<!-- PENDING(koda): the baseline ladder, the pathology catalogue, search-level
-     reproducibility, damage adaptation, the second task, and the deployability latency
-     number all land here. Plan §4 is the list and §9.9 requires reporting negatives
-     with the number if Nemotron loses to any baseline. -->
+Every number below was produced by committed code and is stamped with the commit that made
+it. All of it re-scores from this repo with no model calls.
+
+### The scoreboard
+
+| | score | survives | motor headroom | speed error | full 20 s episodes |
+|---|---|---|---|---|---|
+| **MPC, hand-written** (Upkie's own) | **0.5341** | 1.000 | 0.928 | 0.283 m/s | 20/20 |
+| **Koda's best**, `r3c1` | **0.2286** | 0.920 | 0.898 | 0.532 m/s | 12/20 |
+| Koda's best, as first measured | 0.1468 | 0.638 | 0.914 | 0.508 m/s | — |
+| Best first-attempt reward, of 16 | 0.0380 | 1.000 | 0.774 | 0.644 m/s | — |
+
+**The hand-written controller wins by 2.3x.** That is the headline and it is not buried.
+
+Watch both:
+
+```bash
+./.venv/bin/python watch_policy.py \
+    --policy runs/r3c1_zoohp/policy.zip \
+    --reward results/search_12/candidates/round3/r3c1.py --speed 0.6
+./.venv/bin/python sweep_mpc_baseline.py --speed 0.6
+```
+
+### Finding 1 — the learner was the bottleneck, not the reward search
+
+`gamma`, PPO's discount factor, sets how far ahead the agent optimises. At 200 Hz:
+
+```
+gamma 0.99   (SB3 default)   ~100 control steps  = 0.5 s
+gamma 0.999  (rl_zoo3)      ~1000 control steps  = 5.0 s
+```
+
+An Upkie is non-minimum phase: **to drive forward it must first drive its wheels backward**
+for about half a second to tip the body over. At `gamma 0.99` that never pays off inside
+the horizon the agent can see, so it learns to stay upright and not drive.
+
+Same reward, same seed, only the PPO settings changing:
+
+| | score | survives |
+|---|---|---|
+| 500k steps, SB3 defaults | 0.1468 | 0.638 |
+| 1M steps, SB3 defaults | 0.1617 | 0.622 |
+| 500k steps, rl_zoo3 settings | 0.1981 | 0.765 |
+| **1M steps, rl_zoo3 settings** | **0.2286** | **0.920** |
+
+**+56%, with no change to any reward function.** Doubling training under the bad discount
+factor did nothing — survival even fell. Every reward Koda searched had been judged by that
+learner, so every ranking it produced measured the reward and the learner together.
+
+Settings taken from [`rl_zoo3_balancer`](https://codeberg.org/upkie/rl_zoo3_balancer), a
+third-party SB3 balancer for this same robot. `tests/test_trainer_settings.py` checks each
+value against it, and checks the units: 0.999 is 1000 control steps, which is 5.0 s at
+200 Hz, not 5 steps and not 5 ms.
+
+### Finding 2 — the model builds, it does not polish
+
+Four times the model was handed its own best reward and asked to improve on it:
+
+```
+search_13 round 1   0.0245
+search_14 round 1   0.0566
+search_15 round 1   0.0179     <- learner fixed, feedback honest
+                    bar: 0.1981
+```
+
+It rewrites rather than refines, and rewrites are far worse. Fixing the learner did not
+change this.
+
+What the loop *does* do is climb from wherever it is. In `search_15`, with everything
+working: **0.0179 → 0.0358 → 0.0388**, monotonic for the first time. And `r3c1` — the best
+reward in this repo — is itself a round-3 reward, reached by climbing from a cold start. Of
+16 first-attempt rewards retrained under the fixed learner, the best scores **0.0380**,
+five times worse.
+
+So the iteration is where the value is, and three rounds is not many. **Eureka runs 400
+candidates across 25 iterations and averages 5 training runs per reward. Koda ran 18 across
+3, scored once each.** That ratio, not the prompt and not the model, is the difference we
+can actually point at.
+
+### Finding 3 — a grader that only counts falls will reward thrashing and standing still
+
+Koda's first grader added survival, speed and distance together. Under it the top candidate
+sat **pinned at the wheel torque limit for 96% of every control step** — it balanced by
+vibrating. In the window it visibly convulses.
+
+The grader now multiplies two gates in:
+
+```
+score = stayed_upright x torque_headroom
+        x speed_accuracy^0.55 x distance_covered^0.45
+        x straightness
+```
+
+A weighted **geometric** mean rather than an average, so **zero distance cannot be bought
+back with anything else**, and by AM-GM it can never score higher than the average it
+replaced. Re-scored under it, the old winner fell from 0.3101 to 0.0026 and placed twelfth
+of seventeen. In the final search two candidates still appeared with survival 1.000 and
+headroom 0.995 that travel −0.006 m. They score exactly 0.
+
+---
+
+## The bill
+
+Published in full, failed runs included.
+
+| run | calls | prompt tokens | completion tokens | CPU-hours |
+|---|---|---|---|---|
+| search_11 | 3 | 5,078 | 8,846 | 6.57 |
+| search_12 | 3 | 5,157 | 10,598 | 6.99 |
+| search_13 *(aborted — our bug)* | 2 | 1,758 | 4,070 | 1.83 |
+| search_14 | 3 | 5,373 | 13,161 | 5.05 |
+| search_15 | 3 | 5,319 | 12,512 | 5.43 |
+| 16 first-attempt rewards retrained | 0 | — | — | ~6.0 |
+| ablations and baselines | 0 | — | — | ~2.1 |
+| **total** | **14** | **22,685** | **49,187** | **~34** |
+
+```
+model     nvidia/nemotron-3-super-120b-a12b, via Nebius Token Factory
+machine   AMD Ryzen 7 5800H, 8 cores / 16 threads, 27 GB RAM
+GPU       none
+```
+
+**`search_13`'s `run.json` records 1 call; it actually made 2.** The record is written at
+the end of each round and round 2's call had already fired when the run was killed. Said
+here because the file under-reports it.
+
+**Two of the 14 calls were wasted on our own bug.** `--from-reward` set the starting reward
+without its score, so round 1's winner replaced it whatever it scored. Caught mid-run from
+the prompt contents, killed, fixed, and covered by a regression test.
+
+---
+
+## What is not claimed
+
+- **No searched reward beat the hand-written controller.** 0.2286 against 0.5341.
+- **One seed, one training run per number.** Eureka averages five. Everything here is
+  single-sample, and the round-to-round noise is visible in the results.
+- **Three rounds is not a trend.** `search_12` went 0.0740 → 0.0560 → 0.1468: a worse
+  parent produced a better child, and a better parent later produced worse children.
+- **Nothing ran on hardware.** No Upkie was involved.
+- **The first search is retracted** and says so in its own file. It does not reproduce
+  under the code that produced it and we never found out why.
+- **Nine defects were found in our own measurement code** during this work, including a
+  dead random seed, a leaked force between episodes, and a test suite that made paid API
+  calls. All nine are listed with the commit that closed each in [`DEFECTS.md`](DEFECTS.md).
 
 ---
 
