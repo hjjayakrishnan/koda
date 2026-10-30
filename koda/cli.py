@@ -40,6 +40,15 @@ def main(argv=None) -> int:
              "instead of starting from nothing, so a finished search's winner "
              "can be carried into the next search.",
     )
+    run.add_argument(
+        "--from-score",
+        type=float,
+        default=None,
+        help="the score --from-reward was measured at. REQUIRED with it: "
+             "without it round 1's winner replaces your starting point no "
+             "matter how badly it scores, which is how search_13 bred round 2 "
+             "from 0.0245 after starting from 0.1468.",
+    )
     run.add_argument("--robot", default="upkie", help="which robot (only upkie so far)")
     run.add_argument("--goal", default=GOAL, help="the goal, in one sentence")
     run.add_argument("--rounds", type=int, default=3)
@@ -117,6 +126,7 @@ def main(argv=None) -> int:
         goal=args.goal,
         run_id=args.run_id,
         from_reward=args.from_reward,
+        from_score=args.from_score,
         seeds=seeds,
         robot=args.robot,
         rounds=args.rounds,

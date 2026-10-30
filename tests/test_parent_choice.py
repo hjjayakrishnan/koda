@@ -24,6 +24,50 @@ def check(label, passed, detail=""):
         FAILURES.append(label)
 
 
+def starting_from_a_known_reward():
+    """search_13's bug: --from-reward without its score loses the parent.
+
+    r3c1 was handed in at 0.1468, the running best was left unset, round 1
+    scored 0.0245, and `beats_best(0.0245, None)` said yes because there was
+    nothing to compare against. Round 2 was bred from 0.0245 -- the search
+    walked away from the very thing it was told to improve. Two paid calls went
+    into it before it was caught.
+
+    The test that existed only checked `beats_best` in isolation, which was
+    always correct. What was missing was a test of what gets HANDED to it.
+    """
+    print("Starting from a known reward keeps that reward as the parent")
+
+    # The bug, written out: no starting score.
+    check("WITH NO starting score, a far worse round 1 takes over",
+          beats_best(0.0245, None) is True,
+          "this is correct for beats_best, and is why the score must be passed")
+
+    # The fix: the starting score is carried in.
+    check("WITH the starting score, a worse round 1 is rejected",
+          beats_best(0.0245, 0.1468) is False)
+    check("a round that genuinely beats the starting point is taken",
+          beats_best(0.1600, 0.1468) is True)
+
+    # run() must refuse rather than guess.
+    import inspect
+
+    from koda import orchestrator
+    src = inspect.getsource(orchestrator.run)
+    check("run() refuses --from-reward without --from-score",
+          "from_reward and from_score is None" in src)
+    check("it does not default the score to zero",
+          "from_score or 0" not in src and "from_score, 0" not in src)
+
+    # Replay search_13 as it should have gone.
+    best = 0.1468           # r3c1, handed in
+    for score in (0.0245,):  # what round 1 actually produced
+        if beats_best(score, best):
+            best = score
+    check("replaying search_13: the parent stays 0.1468, not 0.0245",
+          best == 0.1468, f"parent would be {best}")
+
+
 def main():
     print("The parent is the best reward so far, not the last round's")
 
@@ -51,11 +95,13 @@ def main():
           "not 0.0560", parents[1] == 0.0740, f"parents seen: {parents}")
     check("the best is never lost", best == 0.1468, str(best))
 
+    starting_from_a_known_reward()
+
     print()
     if FAILURES:
         print(f"{len(FAILURES)} check(s) FAILED: {FAILURES}")
         return 1
-    print("8 checks passed")
+    print(f"{14} checks passed")
     return 0
 
 

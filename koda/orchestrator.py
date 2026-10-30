@@ -239,6 +239,7 @@ def run(
     search_id: str = "A_healthy_upkie",
     run_id: str | None = None,
     from_reward: str | None = None,
+    from_score: float | None = None,
     human_baseline_path: str | None = None,
     source: str = "fixtures",
     trainer_name: str = "pybullet",
@@ -321,8 +322,23 @@ def run(
     # FIX 1, 2026-10-29. Round 1 used to always start from nothing, so the
     # winner of a finished search could not be carried into the next one. Now a
     # reward function can be handed in and round 1 improves THAT instead.
+    # Starting from an existing reward means starting from a KNOWN score, and
+    # both must be carried or the first round silently replaces the thing you
+    # started from. That is exactly what happened in search_13: r3c1 was handed
+    # in at 0.1468, `best_reward_score` was left at None, round 1 scored 0.0245,
+    # and `beats_best(0.0245, None)` said yes because there was nothing to
+    # compare against. Round 2 was then bred from 0.0245. Refusing to start is
+    # better than guessing a score or defaulting to zero, which both reproduce
+    # the bug quietly.
+    if from_reward and from_score is None:
+        raise ValueError(
+            "--from-reward needs --from-score. Without the score of the "
+            "function you are starting from, round 1's winner replaces it "
+            "whatever it scores, and the search walks away from its own "
+            "starting point. Pass the score it was measured at."
+        )
     best_source = Path(from_reward).read_text() if from_reward else None
-    best_reward_score = None  # FIX 2: the best score seen in ANY round so far
+    best_reward_score = from_score if from_reward else None
     best_reflection = None
     previous_errors = []
 
@@ -444,6 +460,7 @@ def search_all(
     seeds=(11,),
     run_id: str | None = None,
     from_reward: str | None = None,
+    from_score: float | None = None,
     robot: str = "upkie",
     rounds: int = 3,
     candidates: int = 6,
@@ -488,6 +505,7 @@ def search_all(
             search_id=f"seed_{seed}",
             run_id=run_id if run_id else f"search_{seed}",
             from_reward=from_reward,
+            from_score=from_score,
             human_baseline_path=human_baseline_path,
             source=source,
             trainer_name=trainer_name,
