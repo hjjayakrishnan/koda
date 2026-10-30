@@ -1,0 +1,374 @@
+
+
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Components:
+    - pos_error: negative squared error of forward position relative to commanded integration.
+    - yaw_align: cosine similarity reward for yaw alignment.
+    - stability: exponential decay on pitch and pitch_rate.
+    - action_smooth: penalty on large changes in action (jerk).
+    - contact: small reward for maintaining ground contact.
+    """
+    # integrate commanded speed to get desired position increment
+    dt = state.get('dt', 0.0)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    desired_pos_inc = cmd_speed * dt
+    actual_pos_inc = state.get('ground_velocity', 0.0) * dt
+    pos_err = desired_pos_inc - actual_pos_inc
+    pos_error = -0.8 * pos_err * pos_err
+
+    # yaw alignment: reward cos of yaw error (max 1 when aligned)
+    yaw_err = state.get('yaw', 0.0)  # yaw relative to start; we want zero yaw unless commanded turn
+    yaw_align = math.cos(yaw_err)  # range [-1,1]; shift later to [0,1] by (1+cos)/2
+    yaw_align = 0.5 * (yaw_align + 1.0)  # now 0..1
+    yaw_align = yaw_align - 0.5  # make zero at random orientation, positive when aligned
+
+    # stability: penalize pitch and pitch_rate
+    pitch = state.get('pitch', 0.0)
+    pitch_rate = state.get('pitch_rate', 0.0)
+    stability = -0.5 * (pitch * pitch + 0.1 * pitch_rate * pitch_rate)
+
+    # action smoothness: penalize large action values (jerk)
+    ground_vel_cmd = action.get('ground_velocity', 0.0)
+    yaw_vel_cmd = action.get('yaw_velocity', 0.0)
+    action_smooth = -0.01 * (ground_vel_cmd * ground_vel_cmd + yaw_vel_cmd * yaw_vel_cmd)
+
+    # contact bonus
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.02 * contact
+
+    return {
+        'pos_error': pos_error,
+        'yaw_align': yaw_align,
+        'stability': stability,
+        'action_smooth': action_smooth,
+        'contact_bonus': contact_bonus,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Components:
+    - speed_huber: Huber loss for speed tracking (less sensitive to outliers).
+    - yaw_huber: Huber loss for yaw rate tracking.
+    - upright_tanh: tanh-shaped reward for small pitch.
+    - joint_limit: soft penalty when joints approach limits (±2.5 rad).
+    - power: instantaneous power consumption estimate.
+    """
+    def huber(x, delta=0.5):
+        abs_x = abs(x)
+        if abs_x <= delta:
+            return 0.5 * x * x
+        else:
+            return delta * (abs_x - 0.5 * delta)
+
+    # speed tracking
+    cmd_sp = state.get('commanded_speed', 0.0)
+    act_sp = state.get('ground_velocity', 0.0)
+    speed_err = cmd_sp - act_sp
+    speed_huber = -huber(speed_err, delta=0.2)
+
+    # yaw tracking
+    cmd_yawr = state.get('commanded_yaw_rate', 0.0)
+    act_yawr = state.get('yaw_rate', 0.0)
+    yaw_err = cmd_yawr - act_yawr
+    yaw_huber = -huber(yaw_err, delta=0.1)
+
+    # uprightness via tanh (bounded, smooth)
+    pitch = state.get('pitch', 0.0)
+    upright_tanh = math.tanh(1.0 - abs(pitch) / 0.3)  # max ~1 at zero pitch, goes to 0 at ±0.3 rad
+
+    # joint limit avoidance (soft barrier)
+    joint_limit_pen = 0.0
+    limit = 2.5  # rad
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            ang = state.get(f'{side}_{joint}_position', 0.0)
+            # penalty grows as angle approaches limit
+            over = (abs(ang) - limit) if abs(ang) > limit else 0.0
+            joint_limit_pen += over * over
+    joint_limit = -0.001 * joint_limit_pen
+
+    # power estimate: torque * angular velocity summed over actuators
+    power = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            power += abs(t * v)
+    power_pen = -0.0005 * power
+
+    return {
+        'speed_huber': speed_huber,
+        'yaw_huber': yaw_huber,
+        'upright_tanh': upright_tanh,
+        'joint_limit': joint_limit,
+        'power_penalty': power_pen,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Components:
+    - forward_progress: reward for moving in direction of commanded speed (sign-sensitive).
+    - lateral_stability: penalty for yaw rate when no turn commanded.
+    - pose_potential: negative quadratic potential based on pitch and pitch_rate.
+    - motor_effort: L1 norm of torques (encourages sparsity).
+    - exploration_bonus: small reward for non-zero wheel speed to avoid sticking.
+    """
+    # forward progress: only reward if moving forward when command>0, else penalize reverse motion
+    cmd = state.get('commanded_speed', 0.0)
+    vel = state.get('ground_velocity', 0.0)
+    if cmd > 0.0:
+        forward_progress = min(vel, cmd) / (cmd + 1e-6)  # fraction of desired speed achieved, capped at 1
+        forward_progress = forward_progress * 0.1  # scale
+    else:
+        # when no forward command, discourage moving backward
+        forward_progress = -0.05 * max(-vel, 0.0)  # penalize reverse motion
+
+    # lateral stability: penalize yaw rate when commanded yaw rate is near zero
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    yaw_rate = state.get('yaw_rate', 0.0)
+    yaw_err = yaw_rate - cmd_yaw
+    lateral_stability = -0.02 * yaw_err * yaw_err if abs(cmd_yaw) < 0.05 else 0.0
+
+    # pose potential: Lyapunov-like term for upright stability
+    pitch = state.get('pitch', 0.0)
+    pitch_rate = state.get('pitch_rate', 0.0)
+    pose_potential = -0.4 * (pitch * pitch + 0.05 * pitch_rate * pitch_rate)
+
+    # motor effort: L1 norm of torques (less aggressive than L2)
+    effort = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            effort += abs(t)
+    motor_effort = -0.0003 * effort
+
+    # exploration bonus: reward any wheel spin to encourage locomotion
+    wheel_speed = (abs(state.get('left_wheel_velocity', 0.0)) +
+                   abs(state.get('right_wheel_velocity', 0.0))) * 0.5
+    exploration_bonus = 0.001 * wheel_speed
+
+    return {
+        'forward_progress': forward_progress,
+        'lateral_stability': lateral_stability,
+        'pose_potential': pose_potential,
+        'motor_effort': motor_effort,
+        'exploration_bonus': exploration_bonus,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Components:
+    - speed_ratio: reward proportional to actual/commanded speed (bounded).
+    - yaw_alignment_l1: L1 penalty on yaw rate error.
+    - stability_gauss: product of Gaussians for pitch and pitch_rate.
+    - jerk_penalty: approximates discrete jerk via change in action.
+    - heartbeat: tiny periodic signal to encourage policy variation.
+    """
+    # speed ratio (avoid division by zero)
+    cmd = state.get('commanded_speed', 0.0)
+    act = state.get('ground_velocity', 0.0)
+    if cmd != 0.0:
+        ratio = act / cmd
+        # clip to reasonable range and reward being close to 1
+        ratio = max(min(ratio, 2.0), -2.0)
+        speed_ratio = -0.2 * (ratio - 1.0) * (ratio - 1.0)  # parabola around 1
+    else:
+        # when no command, reward staying still
+        speed_ratio = -0.1 * act * act
+
+    # yaw alignment L1
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    act_yaw = state.get('yaw_rate', 0.0)
+    yaw_err = act_yaw - cmd_yaw
+    yaw_alignment_l1 = -0.05 * abs(yaw_err)
+
+    # stability as product of Gaussians (more restrictive)
+    pitch = state.get('pitch', 0.0)
+    pitch_rate = state.get('pitch_rate', 0.0)
+    gauss_pitch = math.exp(-(pitch * pitch) / (2 * 0.15 * 0.15))
+    gauss_rate = math.exp(-(pitch_rate * pitch_rate) / (2 * 0.5 * 0.5))
+    stability_gauss = (gauss_pitch * gauss_rate) - 0.5  # shift so zero at rest gives ~0
+
+    # jerk penalty: approximate derivative of action using previous step stored in state?
+    # Since we lack memory, use magnitude of action as proxy for jerk (large actions cause jerk)
+    ground_cmd = action.get('ground_velocity', 0.0)
+    yaw_cmd = action.get('yaw_velocity', 0.0)
+    jerk_penalty = -0.0002 * (ground_cmd * ground_cmd + yaw_cmd * yaw_cmd)
+
+    # heartbeat: small sinusoid based on time to break symmetry
+    t = state.get('dt', 0.0) * 0.0  # placeholder; we don't have time, skip
+    # Instead use a function of state that varies: sum of joint positions
+    joint_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            joint_sum += state.get(f'{side}_{joint}_position', 0.0)
+    heartbeat = 0.0001 * math.sin(joint_sum)
+
+    return {
+        'speed_ratio': speed_ratio,
+        'yaw_alignment_l1': yaw_alignment_l1,
+        'stability_gauss': stability_gauss,
+        'jerk_penalty': jerk_penalty,
+        'heartbeat': heartbeat,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Sparse‑shaped reward:
+    - big_pos: +1.0 if pitch within ±0.1 rad AND ground speed within 0.05 m/s of command.
+    - mediocre: +0.1 if pitch within ±0.2 rad.
+    - penalty: -0.01 * (absolute pitch) to discourage large leans.
+    - control_cost: -0.0005 * (sum of squared actions).
+    """
+    pitch = state.get('pitch', 0.0)
+    sp_cmd = state.get('commanded_speed', 0.0)
+    sp_act = state.get('ground_velocity', 0.0)
+    speed_err = abs(sp_cmd - sp_act)
+
+    # big reward when both conditions satisfied
+    if abs(pitch) <= 0.1 and speed_err <= 0.05:
+        big_pos = 1.0
+    else:
+        big_pos = 0.0
+
+    # medium reward for moderate uprightness
+    if abs(pitch) <= 0.2:
+        mediocre = 0.1
+    else:
+        mediocre = 0.0
+
+    # continuous lean penalty
+    lean_pen = -0.01 * abs(pitch)
+
+    # control effort cost
+    ground_cmd = action.get('ground_velocity', 0.0)
+    yaw_cmd = action.get('yaw_velocity', 0.0)
+    control_cost = -0.0005 * (ground_cmd * ground_cmd + yaw_cmd * yaw_cmd)
+
+    return {
+        'big_pos': big_pos,
+        'mediocre': mediocre,
+        'lean_penalty': lean_pen,
+        'control_cost': control_cost,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Energy‑shaping reward:
+    - total_energy: negative of approximated mechanical energy (kinetic + potential).
+    - tracking: quadratic error on speed and yaw rate.
+    - alignment: reward for zero lateral slip (approximated by yaw rate when no turn).
+    - regularization: small L2 on joint velocities to keep motion smooth.
+    """
+    # Approximate kinetic energy: 0.5 * m * v^2 + 0.5 * I * omega^2
+    # Use unit mass and inertia for scaling; only relative values matter.
+    v = state.get('ground_velocity', 0.0)
+    omega_yaw = state.get('yaw_rate', 0.0)
+    ke = 0.5 * (v * v + 0.01 * omega_yaw * omega_yaw)  # small weight on yaw
+
+    # Potential energy from pitch (height change approx proportional to sin(pitch))
+    pitch = state.get('pitch', 0.0)
+    pe = 0.5 * (pitch * pitch)  # simple quadratic approximation
+
+    total_energy = -(ke + pe)  # we want low energy => negative reward
+
+    # Tracking terms
+    sp_err = state.get('commanded_speed', 0.0) - v
+    yaw_err = state.get('commanded_yaw_rate', 0.0) - omega_yaw
+    track = -0.4 * sp_err * sp_err - 0.2 * yaw_err * yaw_err
+
+    # Alignment: when no turn command, reward low yaw rate
+    if abs(state.get('commanded_yaw_rate', 0.0)) < 0.02:
+        align = 0.02 * math.exp(- (omega_yaw * omega_yaw) / (2 * 0.1 * 0.1))
+    else:
+        align = 0.0
+
+    # Joint velocity regularization (smooth motion)
+    jv2 = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            jv2 += state.get(f'{side}_{joint}_velocity', 0.0) ** 2
+    reg = -0.00005 * jv2
+
+    return {
+        'total_energy': total_energy,
+        'tracking': track,
+        'alignment': align,
+        'regularization': reg,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Multiplicative reward shaping:
+    - base: product of three sigmoidal terms (speed, yaw, upright).
+    - cost: additive penalties for actuation and joint limits.
+    """
+    # speed sigmoid: reward increases with speed up to command, saturates
+    cmd = state.get('commanded_speed', 0.0)
+    act = state.get('ground_velocity', 0.0)
+    if cmd > 0:
+        speed_sig = 1.0 / (1.0 + math.exp(-5.0 * (act / cmd - 1.0)))  # centered at 1
+    else:
+        speed_sig = 1.0 / (1.0 + math.exp(5.0 * act))  # penalize any movement when no cmd
+
+    # yaw sigmoid: reward small yaw error
+    yaw_cmd = state.get('commanded_yaw_rate', 0.0)
+    yaw_act = state.get('yaw_rate', 0.0)
+    yaw_err = yaw_act - yaw_cmd
+    yaw_sig = 1.0 / (1.0 + math.exp(10.0 * abs(yaw_err)))  # max 1 at zero error
+
+    # upright sigmoid: reward small pitch
+    pitch = state.get('pitch', 0.0)
+    upright_sig = 1.0 / (1.0 + math.exp(8.0 * abs(pitch)))  # max 1 at zero pitch
+
+    base = speed_sig * yaw_sig * upright_sig  # ranges 0..1
+
+    # actuation cost (L2)
+    ground_cmd = action.get('ground_velocity', 0.0)
+    yaw_cmd = action.get('yaw_velocity', 0.0)
+    actuation_cost = -0.001 * (ground_cmd * ground_cmd + yaw_cmd * yaw_cmd)
+
+    # joint limit cost: penalize proximity to ±2.5 rad
+    limit = 2.5
+    limit_cost = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            ang = state.get(f'{side}_{joint}_position', 0.0)
+            over = max(abs(ang) - limit, 0.0)
+            limit_cost += over * over
+    limit_cost = -0.0002 * limit_cost
+
+    return {
+        'base': base,
+        'actuation_cost': actuation_cost,
+        'joint_limit_cost': limit_cost,
+    }
+```

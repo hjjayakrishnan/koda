@@ -1,0 +1,271 @@
+
+
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Terms:
+    - speed_l1:   negative L1 error on forward speed.
+    - yaw_l1:     negative L1 error on yaw rate.
+    - upright_cos: cosine‑based reward for staying near vertical (max 1 at pitch=0).
+    - power_cost: estimated electrical power ≈ Σ |torque * velocity| for all actuators.
+    - contact_ok: reward for having at least one wheel in contact.
+    - action_smooth: penalty for large commanded velocities (discourages aggressive inputs).
+    """
+    # speed tracking (L1)
+    cmd_v = state.get('commanded_speed', 0.0)
+    act_v = state.get('ground_velocity', 0.0)
+    speed_l1 = -abs(cmd_v - act_v)
+
+    # yaw tracking (L1)
+    cmd_ywr = state.get('commanded_yaw_rate', 0.0)
+    act_ywr = state.get('yaw_rate', 0.0)
+    yaw_l1 = -abs(cmd_ywr - act_ywr)
+
+    # upright via cosine (bounded [0,1])
+    pitch = state.get('pitch', 0.0)
+    upright_cos = max(math.cos(pitch), 0.0)   # 1 when pitch=0, drops to 0 at ±π/2
+
+    # power consumption approximation
+    power = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            w = state.get(f'{side}_{joint}_velocity', 0.0)
+            power += abs(t * w)
+    power_cost = -0.0005 * power   # scale tuned to keep term modest
+
+    # contact encouragement
+    contact = state.get('contact', 0.0)
+    contact_ok = 0.02 * contact   # 0.02 when both wheels touch, else 0
+
+    # penalize large action magnitudes (helps learning stability)
+    act_ground = action.get('ground_velocity', 0.0)
+    act_yaw = action.get('yaw_velocity', 0.0)
+    action_smooth = -0.001 * (act_ground * act_ground + act_yaw * act_yaw)
+
+    return {
+        'speed_l1': speed_l1,
+        'yaw_l1': yaw_l1,
+        'upright_cos': upright_cos,
+        'power_cost': power_cost,
+        'contact_ok': contact_ok,
+        'action_smooth': action_smooth,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Alternative formulation:
+    - speed_exp: exponential penalty for speed error (softer near zero, harsher far away).
+    - yaw_exp:   same for yaw rate.
+    - balance_gain: reward proportional to inverse of pitch variance over short window (approximated by |pitch|).
+    - joint_acc_penalty: penalizes rapid changes in joint velocities approximated by current velocity magnitude.
+    - slip_penalty: heavy penalty when contact is lost.
+    - efficiency_bonus: reward for low torque magnitude (encourages gliding).
+    """
+    # speed error → exponential cost
+    sp_err = state.get('commanded_speed', 0.0) - state.get('ground_velocity', 0.0)
+    speed_exp = -math.exp(abs(sp_err) / 0.5) + 1.0   # max 0 at zero error, goes negative
+
+    # yaw error → exponential cost
+    y_err = state.get('commanded_yaw_rate', 0.0) - state.get('yaw_rate', 0.0)
+    yaw_exp = -math.exp(abs(y_err) / 0.5) + 1.0
+
+    # balance gain: higher when upright (small |pitch|)
+    pitch = abs(state.get('pitch', 0.0))
+    balance_gain = math.exp(-pitch * 5.0)   # decays quickly with tilt
+
+    # joint acceleration proxy: use joint velocity magnitude
+    joint_acc = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            joint_acc += abs(v)
+    joint_acc_penalty = -0.0002 * joint_acc
+
+    # slip penalty: large negative if contact lost
+    contact = state.get('contact', 0.0)
+    slip_penalty = -10.0 * (1.0 - contact)   # -10 when no contact, 0 when contact=1
+
+    # efficiency bonus: low torque
+    torque_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            torque_sum += abs(t)
+    efficiency_bonus = 0.001 * (1.0 / (1.0 + torque_sum))   # small positive
+
+    return {
+        'speed_exp': speed_exp,
+        'yaw_exp': yaw_exp,
+        'balance_gain': balance_gain,
+        'joint_acc_penalty': joint_acc_penalty,
+        'slip_penalty': slip_penalty,
+        'efficiency_bonus': efficiency_bonus,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Idea: shape reward as product of normalized sub‑rewards (all in [0,1]).
+    Each term is a multiplicative factor; the final dict stores log‑terms so
+    that summation yields log(product) → maximizing product.
+    Terms:
+    - log_speed:   log of Gaussian similarity of speed.
+    - log_yaw:     log of Gaussian similarity of yaw rate.
+    - log_upright: log of cosine based uprightness.
+    - log_smooth:  log of penalty for joint jerk approximated by velocity.
+    - log_contact: log of contact reward.
+    - log_effort:  log of torque penalty.
+    """
+    # helpers to keep within [0,1]
+    def guassian_sim(x, sigma):
+        return math.exp(-0.5 * (x / sigma) ** 2)
+
+    # speed similarity
+    sp_err = state.get('commanded_speed', 0.0) - state.get('ground_velocity', 0.0)
+    speed_sim = guassian_sp_err = guassian_sim(sp_err, 0.3)   # sigma=0.3 m/s
+    log_speed = math.log(max(speed_sim, 1e-8))
+
+    # yaw similarity
+    y_err = state.get('commanded_yaw_rate', 0.0) - state.get('yaw_rate', 0.0)
+    yaw_sim = guassian_sim(y_err, 0.5)   # sigma=0.5 rad/s
+    log_yaw = math.log(max(yaw_sim, 1e-8))
+
+    # upright cosine (already [0,1])
+    pitch = state.get('pitch', 0.0)
+    upright = max(math.cos(pitch), 0.0)
+    log_upright = math.log(max(upright, 1e-8))
+
+    # smoothness: penalize high joint velocities
+    vel_sq_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            vel_sq_sum += v * v
+    smooth = math.exp(-0.0001 * vel_sq_sum)   # in (0,1]
+    log_smooth = math.log(max(smooth, 1e-8))
+
+    # contact reward
+    contact = state.get('contact', 0.0)
+    log_contact = math.log(max(contact, 1e-8))
+
+    # effort: low torque
+    torque_sq_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            torque_sq_sum += t * t
+    effort = math.exp(-0.0002 * torque_sq_sum)
+    log_effort = math.log(max(effort, 1e-8))
+
+    return {
+        'log_speed': log_speed,
+        'log_yaw': log_yaw,
+        'log_upright': log_upright,
+        'log_smooth': log_smooth,
+        'log_contact': log_contact,
+        'log_effort': log_effort,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Sparse‑style reward:
+    - arrival_bonus: large positive when both speed and yaw are within tight bands.
+    - stability_penalty: negative when pitch exceeds a threshold.
+    - jerk_penalty: approximates joint jerk via change in velocity (proxy = velocity^2).
+    - control_effort: penalizes squared action magnitudes.
+    - footing_reward: small reward per timestep with wheel contact.
+    """
+    # arrival bonus (only when both errors are tiny)
+    sp_err = state.get('commanded_speed', 0.0) - state.get('ground_velocity', 0.0)
+    y_err  = state.get('commanded_yaw_rate', 0.0) - state.get('yaw_rate', 0.0)
+    inside = (abs(sp_err) < 0.05) and (abs(y_err) < 0.02)
+    arrival_bonus = 5.0 if inside else 0.0
+
+    # stability penalty (large negative if tipped)
+    pitch = state.get('pitch', 0.0)
+    stability_penalty = -2.0 if abs(pitch) > 0.3 else 0.0   # ~17 deg
+
+    # jerk proxy: sum of squared joint velocities (higher vel → higher jerk)
+    jerk = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            v = state.get(f'{side}_{joint}_velocity', 0.0)
+            jerk += v * v
+    jerk_penalty = -0.00005 * jerk
+
+    # control effort: penalize magnitude of actions
+    act_sp = action.get('ground_velocity', 0.0)
+    act_yw = action.get('yaw_velocity', 0.0)
+    control_effort = -0.001 * (act_sp * act_sp + act_yw * act_yw)
+
+    # footing reward
+    contact = state.get('contact', 0.0)
+    footing_reward = 0.02 * contact
+
+    return {
+        'arrival_bonus': arrival_bonus,
+        'stability_penalty': stability_penalty,
+        'jerk_penalty': jerk_penalty,
+        'control_effort': control_effort,
+        'footing_reward': footing_reward,
+    }
+
+### candidate
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Energy‑shaping reward inspired by LQR‑like quadratic forms but with
+    hand‑tuned state‑weight matrices.
+    State error vector e = [speed_err, yaw_err, pitch, pitch_rate].
+    Action vector u = [ground_velocity_cmd, yaw_velocity_cmd].
+    Reward = -(e^T Q e + u^T R u) + small contact bonus.
+    Q and R are diagonal matrices chosen to reflect task priorities.
+    """
+    # state errors
+    speed_err = state.get('commanded_speed', 0.0) - state.get('ground_velocity', 0.0)
+    yaw_err   = state.get('commanded_yaw_rate', 0.0) - state.get('yaw_rate', 0.0)
+    pitch     = state.get('pitch', 0.0)
+    pitch_rate= state.get('pitch_rate', 0.0)
+
+    # Q diagonal weights (tuned)
+    q_speed   = 1.0
+    q_yaw     = 0.5
+    q_pitch   = 2.0      # penalize tilt heavily
+    q_pitchr  = 0.1
+
+    quad_state = (q_speed   * speed_err   * speed_err +
+                  q_yaw     * yaw_err     * yaw_err   +
+                  q_pitch   * pitch       * pitch     +
+                  q_pitchr  * pitch_rate  * pitch_rate)
+
+    # action vector
+    u_sp = action.get('ground_velocity', 0.0)
+    u_yw = action.get('yaw_velocity', 0.0)
+
+    # R diagonal weights
+    r_sp = 0.01
+    r_yw = 0.01
+
+    quad_action = r_sp * u_sp * u_sp + r_yw * u_yw * u_yw
+
+    # contact bonus (encourage keeping wheels on ground)
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.03 * contact
+
+    # final reward = negative quadratic cost + bonus
+    reward_val = -(quad_state + quad_action) + contact_bonus
+
+    # Return as a single term; caller sums terms, so we just give one entry.
+    return {'quadratic_cost': reward_val}
+</answer>
