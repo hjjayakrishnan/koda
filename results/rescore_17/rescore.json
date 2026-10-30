@@ -1,4 +1,12 @@
 {
+  "REPRODUCIBILITY_NOTE": {
+    "status": "PARTIALLY UNVERIFIED \u2014 one entry does not reproduce",
+    "found": "2026-10-30",
+    "what": "r3c2 is recorded here as surviving the full 20.0 s at every commanded speed, survival_frac 1.000. Replayed today through the same code path (trainer_pybullet._rollout_episode, same policy, same seed 11, same 0.6 m/s) it falls at 0.755 s. Two independent paths agree with each other and both disagree with this file.",
+    "not_explained": "We did not find the cause before the submission deadline. It is the same class of problem as results/search_11/run.json, which is retracted for not reproducing either.",
+    "what_is_unaffected": "The headline result does not depend on this file. r3c1 trained with the corrected PPO settings scores 0.2286 and survives the full 20 s at 0.3 and 0.6 m/s when replayed today \u2014 see results/r3c1_zoohp/. The MPC baseline at 0.5341 also replays.",
+    "how_to_check": "./.venv/bin/python watch_policy.py --headless --policy runs/search_12/seed11/r3c2/policy.zip --reward results/search_12/candidates/round3/r3c2.py --speed 0.6 --seed 11"
+  },
   "header": {
     "generated": "re-score of search_11 policies on the fixed harness",
     "code_sha": "447f8c7b28c75818a2b42afb036b8a2b61572b21",

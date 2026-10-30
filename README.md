@@ -284,6 +284,11 @@ the prompt contents, killed, fixed, and covered by a regression test.
 - **Nothing ran on hardware.** No Upkie was involved.
 - **The first search is retracted** and says so in its own file. It does not reproduce
   under the code that produced it and we never found out why.
+- **One entry in `results/rescore_17/` does not reproduce either**, found on submission
+  morning and stamped in the file rather than quietly removed. `r3c2` is recorded there as
+  surviving 20 s; replayed today it falls at 0.755 s. The headline result does not rest on
+  it — `r3c1` at 0.2286 and the MPC baseline at 0.5341 both replay — but the file is wrong
+  and says so.
 - **Nine defects were found in our own measurement code** during this work, including a
   dead random seed, a leaked force between episodes, and a test suite that made paid API
   calls. All nine are listed with the commit that closed each in [`DEFECTS.md`](DEFECTS.md).
