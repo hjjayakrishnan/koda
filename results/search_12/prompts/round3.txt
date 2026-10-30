@@ -1,0 +1,155 @@
+You are writing the reward function for a robot. Its simulation environment ships without one: the maintainers wrote reward functions, removed them, and left the decision to whoever writes the agent.
+
+This is the environment's step function, verbatim, from `robot/envs/robot_env.py`, class `RobotEnv`:
+
+```python
+        # Regulate loop frequency, if applicable
+        if self.__regulate_frequency:
+            self.__rate.sleep()  # wait until clock tick to send the action
+
+        # Convert environment action to spine action and apply it
+        spine_action = self.get_spine_action(action)
+        spine_action["env"] = self.__log
+        spine_observation = self.backend.step(spine_action)
+
+        # Get observation
+        observation = self.get_env_observation(spine_observation)
+        reward = 0.0  # to be decided by agents, for instance via wrappers
+        terminated = False
+        truncated = False  # will be handled by e.g. a TimeLimit wrapper
+
+        # Cross button (A on Xbox / cross on PS4) signals a manual stop
+        joystick_obs = spine_observation.get("joystick", {})
+        if joystick_obs.get("cross_button", 0):
+            terminated = True
+            truncated = True
+
+        info = {"spine_observation": spine_observation}
+
+        return observation, reward, terminated, truncated, info
+```
+
+The robot has two legs, each ending in a driven wheel, and six actuated joints: left_hip, left_knee, left_wheel, right_hip, right_knee, right_wheel. The wheels keep it balanced.
+
+The goal, in one sentence: balance upright and drive forward at the commanded speed
+
+state -- a dict of floats:
+    dt                       s        length of one control step
+    pitch                    rad      base pitch from vertical, positive leaning forward
+    pitch_rate               rad/s    base pitch angular velocity
+    ground_position          m        position of the average wheel contact point
+    ground_velocity          m/s      velocity of the average wheel contact point
+    yaw                      rad      base yaw angle, zero at the start of the episode
+    yaw_rate                 rad/s    base yaw angular velocity
+    commanded_speed          m/s      the forward speed the robot was asked for
+    commanded_yaw_rate       rad/s    the yaw rate the robot was asked for
+    contact                  0 or 1   1.0 when at least one wheel touches the floor
+    left_hip_position        rad      left_hip: joint angle
+    left_hip_velocity        rad/s    left_hip: joint angular velocity
+    left_hip_torque          Nm       left_hip: torque applied by the joint's motor
+    left_knee_position       rad      left_knee: joint angle
+    left_knee_velocity       rad/s    left_knee: joint angular velocity
+    left_knee_torque         Nm       left_knee: torque applied by the joint's motor
+    left_wheel_position      rad      left_wheel: joint angle
+    left_wheel_velocity      rad/s    left_wheel: joint angular velocity
+    left_wheel_torque        Nm       left_wheel: torque applied by the joint's motor
+    right_hip_position       rad      right_hip: joint angle
+    right_hip_velocity       rad/s    right_hip: joint angular velocity
+    right_hip_torque         Nm       right_hip: torque applied by the joint's motor
+    right_knee_position      rad      right_knee: joint angle
+    right_knee_velocity      rad/s    right_knee: joint angular velocity
+    right_knee_torque        Nm       right_knee: torque applied by the joint's motor
+    right_wheel_position     rad      right_wheel: joint angle
+    right_wheel_velocity     rad/s    right_wheel: joint angular velocity
+    right_wheel_torque       Nm       right_wheel: torque applied by the joint's motor
+
+action -- a dict of floats:
+    ground_velocity          m/s      commanded forward velocity of the wheel contact point
+    yaw_velocity             rad/s    commanded yaw velocity
+
+Write a Python file that defines exactly this function:
+
+    def compute_reward(state: dict, action: dict) -> dict:
+        ...
+
+It is called once per control step. It returns a dict mapping your own term names
+to plain floats. The caller adds the values together to get the step's reward, so
+a term you want to discourage must return a negative number.
+
+Rules:
+  * return a dict of str -> float, and nothing else
+  * every value must be a finite number, never NaN and never infinity
+  * use only the Python standard library; `math` is available, nothing is imported
+    for you
+  * do not read files, open sockets, or run other programs
+  * pick as many or as few terms as you think the job needs, and name them for
+    what they measure
+
+
+The best reward function from the previous round was this:
+
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Simple tracking‑plus‑stability reward.
+    - speed_error: negative squared difference between commanded and actual forward speed.
+    - upright: cosine of pitch (1 when upright, 0 when sideways, negative when inverted).
+    - torque_penalty: sum of squared joint torques scaled down.
+    - contact_bonus: small reward for maintaining wheel‑ground contact.
+    """
+    # speed tracking
+    cmd_speed = state.get('commanded_speed', 0.0)
+    actual_speed = state.get('ground_velocity', 0.0)
+    speed_err = cmd_speed - actual_speed
+    speed_error = -0.5 * speed_err * speed_err   # negative quadratic
+
+    # uprightness (penalise lean)
+    pitch = state.get('pitch', 0.0)
+    upright = math.cos(pitch)  # 1 at pitch=0, decreases as |pitch| grows
+
+    # torque effort
+    torque_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            t = state.get(f'{side}_{joint}_torque', 0.0)
+            torque_sum += t * t
+    torque_penalty = -0.0002 * torque_sum
+
+    # contact encouragement
+    contact = state.get('contact', 0.0)
+    contact_bonus = 0.01 * contact   # 0.01 when both wheels touch, 0 otherwise
+
+    return {
+        'speed_error': speed_error,
+        'upright': upright,
+        'torque_penalty': torque_penalty,
+        'contact_bonus': contact_bonus,
+    }
+```
+
+What happened when it was trained and measured:
+
+Each reward term, averaged per control step, at 10%, 25%, 50%, 100% of training:
+    contact_bonus   +0.008 -> +0.009 -> +0.009 -> +0.010
+    speed_error     -0.302 -> -0.234 -> -0.150 -> -0.093
+    torque_penalty  -0.001 -> -0.001 -> -0.001 -> -0.001
+    upright         +0.947 -> +0.967 -> +0.981 -> +0.985
+    (sum)           +0.652 -> +0.741 -> +0.840 -> +0.901
+
+Measured on the trained robot, over 20 evaluation episodes:
+    stayed up for 30% of the episode, on average
+    mean speed error 0.551 m/s, against commands of 0.3, 0.6 and 0.9 m/s
+    covered 16% of the ground the command implies
+    worst heading drift 0.0 degrees
+    worst pitch excursion 58.8 degrees
+    closest a joint came to its travel limit: 71.0 degrees
+    knocked off upright 5 time(s) and never came back
+    peak motor torque reached 100% of the wheel motors' rated limit and 12% of the leg motors'
+    wheel motors sat pinned at that limit for 17% of every step taken
+    limits exceeded: wheel_torque_exceeded, fell_over, never_recovered_from_push
+
+Score: 0.056 out of 1.000 (0.3 m/s: 0.129, 0.6 m/s: 0.052, 0.9 m/s: 0.012)
+
+Write 6 different reward functions. Separate them with a line containing only `### candidate`. Each one must be a complete file defining compute_reward. Try genuinely different ideas, not the same function with different numbers.

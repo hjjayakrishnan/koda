@@ -1,0 +1,256 @@
+
+
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Reward components:
+    - bal_pen: quadratic penalty for pitch deviation and pitch rate.
+    - speed_err: negative squared error between actual ground velocity and commanded speed.
+    - yaw_pen: penalty for yaw rate deviation from commanded yaw rate (encourages straight travel).
+    - effort: small penalty on summed squared motor torques (encourages efficient control).
+    - contact_bonus: small bonus when at least one wheel touches the ground.
+    """
+    # Balancing: keep pitch near zero and avoid fast tilting
+    pitch = state.get('pitch', 0.0)
+    pitch_rate = state.get('pitch_rate', 0.0)
+    bal_pen = -(pitch * pitch + 0.1 * pitch_rate * pitch_rate)
+
+    # Speed tracking: reward matching commanded forward speed
+    ground_vel = state.get('ground_velocity', 0.0)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    speed_err = -(ground_vel - cmd_speed) ** 2
+
+    # Yaw tracking: keep yaw rate close to commanded yaw rate (often zero)
+    yaw_rate = state.get('yaw_rate', 0.0)
+    cmd_yaw = state.get('commanded_yaw_rate', 0.0)
+    yaw_pen = -(yaw_rate - cmd_yaw) ** 2
+
+    # Effort: penalize large motor torques (sum over all actuators)
+    torque_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            torque_sum += state.get(f'{side}_{joint}_torque', 0.0) ** 2
+    effort = -0.001 * torque_sum
+
+    # Contact bonus: encourage staying grounded
+    contact = state.get('contact', 0)
+    contact_bonus = 0.5 if contact > 0.5 else 0.0
+
+    return {
+        'bal_pen': bal_pen,
+        'speed_err': speed_err,
+        'yaw_pen': yaw_pen,
+        'effort': effort,
+        'contact_bonus': contact_bonus,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Reward based on exponential shaping:
+    - exp_balance: high reward when pitch is near zero (Gaussian).
+    - exp_speed: reward for forward velocity aligned with command (cosine-like).
+    - yaw_align: reward for yaw angle staying near zero (prevents spinning).
+    - action_smooth: penalizes large changes in action (not stored, so approximate with action magnitude).
+    """
+    pitch = state.get('pitch', 0.0)
+    # Gaussian reward, sigma = 0.2 rad (~11 deg)
+    exp_balance = math.exp(-(pitch * pitch) / (2 * 0.2 * 0.2))
+
+    ground_vel = state.get('ground_velocity', 0.0)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    # Reward proportional to overlap; max when velocities match direction and magnitude
+    # Use a simple normalized dot product (since 1D)
+    if abs(cmd_speed) > 1e-3:
+        exp_speed = math.exp(-((ground_vel - cmd_speed) ** 2) / (2 * 0.1 * 0.1))
+    else:
+        # When no forward command, reward low speed magnitude
+        exp_speed = math.exp(-(ground_vel * ground_vel) / (2 * 0.05 * 0.05))
+
+    yaw = state.get('yaw', 0.0)
+    # Keep yaw near zero (straight ahead)
+    yaw_align = math.exp(-(yaw * yaw) / (2 * 0.2 * 0.2))
+
+    # Action magnitude penalty (encourage small commands)
+    ground_cmd = action.get('ground_velocity', 0.0)
+    yaw_cmd = action.get('yaw_velocity', 0.0)
+    action_smooth = -(ground_cmd * ground_cmd + yaw_cmd * yaw_cmd) * 0.005
+
+    return {
+        'exp_balance': exp_balance,
+        'exp_speed': exp_speed,
+        'yaw_align': yaw_align,
+        'action_smooth': action_smooth,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Potential‑based shaping:
+    Define a desired feature vector (pitch, pitch_rate, ground_velocity error,
+    yaw_rate error). Reward is negative squared Mahalanobis distance with hand‑picked
+    weights, plus a survival bonus.
+    """
+    # Errors
+    pitch_err = state.get('pitch', 0.0)
+    pitch_rate_err = state.get('pitch_rate', 0.0)
+    speed_err = state.get('ground_velocity', 0.0) - state.get('commanded_speed', 0.0)
+    yaw_rate_err = state.get('yaw_rate', 0.0) - state.get('commanded_yaw_rate', 0.0)
+
+    # Weights (tuned intuitively)
+    w_pitch = 10.0
+    w_pitch_rate = 2.0
+    w_speed = 5.0
+    w_yaw_rate = 2.0
+
+    # Quadratic cost
+    cost = (w_pitch * pitch_err * pitch_err +
+            w_pitch_rate * pitch_rate_err * pitch_rate_err +
+            w_speed * speed_err * speed_err +
+            w_yaw_rate * yaw_rate_err * yaw_rate_err)
+
+    # Survival bonus (encourage longer episodes)
+    survive = 0.1
+
+    return {
+        'potential': -cost,
+        'survive': survive,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Sigmoid‑shaped rewards:
+    - balance_sig: rises as pitch approaches zero.
+    - speed_sig: rises as ground velocity approaches commanded speed.
+    - upright_bonus: extra reward when the robot is upright (|pitch| < 0.05) and moving forward.
+    - torque_penalty: linear penalty on absolute torque sum.
+    """
+    pitch = state.get('pitch', 0.0)
+    # Sigmoid centred at 0, steepness 20
+    balance_sig = 1.0 / (1.0 + math.exp(20 * abs(pitch)))  # yields ~1 when pitch~0
+
+    ground_vel = state.get('ground_velocity', 0.0)
+    cmd_speed = state.get('commanded_speed', 0.0)
+    speed_diff = ground_vel - cmd_speed
+    speed_sig = 1.0 / (1.0 + math.exp(15 * abs(speed_diff)))  # ~1 when matched
+
+    # Upright bonus: only if within tight band and forward velocity positive relative to command
+    upright = 1.0 if abs(pitch) < 0.05 else 0.0
+    forward_ok = 1.0 if (ground_vel * cmd_speed) >= 0 else 0.0  # same sign or both zero
+    upright_bonus = 0.5 * upright * forward_ok
+
+    # Torque penalty (linear to avoid exploding gradients)
+    torque_abs_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            torque_abs_sum += abs(state.get(f'{side}_{joint}_torque', 0.0))
+    torque_penalty = -0.01 * torque_abs_sum
+
+    return {
+        'balance_sig': balance_sig,
+        'speed_sig': speed_sig,
+        'upright_bonus': upright_bonus,
+        'torque_penalty': torque_penalty,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Sparse reward with shaping hints:
+    - big_reward: +2 if the robot is both well balanced (|pitch|<0.04) and
+                  tracking speed within 0.05 m/s.
+    - small_penalty: -0.01 per step to encourage shorter episodes unless big reward achieved.
+    - joint_limit_soft: gentle penalty when joints approach reasonable limits (±2.5 rad for hips/knees,
+                        ±10 rad for wheels) to avoid mechanical strain.
+    """
+    pitch = state.get('pitch', 0.0)
+    ground_vel = state.get('ground_velocity', 0.0)
+    cmd_speed = state.get('commanded_speed', 0.0)
+
+    balance_ok = abs(pitch) < 0.04
+    speed_ok = abs(ground_vel - cmd_speed) < 0.05
+    big_reward = 2.0 if (balance_ok and speed_ok) else 0.0
+
+    small_penalty = -0.01  # step cost
+
+    # Joint limit soft penalty
+    limit_penalty = 0.0
+    # hips/knees limit ~2.5 rad
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee'):
+            pos = state.get(f'{side}_{joint}_position', 0.0)
+            if abs(pos) > 2.5:
+                excess = abs(pos) - 2.5
+                limit_penalty -= 0.05 * excess * excess
+    # wheels limit ~10 rad (just to avoid huge windup)
+    for side in ('left', 'right'):
+        pos = state.get(f'{side}_wheel_position', 0.0)
+        if abs(pos) > 10.0:
+            excess = abs(pos) - 10.0
+            limit_penalty -= 0.02 * excess * excess
+
+    return {
+        'big_reward': big_reward,
+        'step_cost': small_penalty,
+        'joint_limit_soft': limit_penalty,
+    }
+```
+### candidate
+```python
+import math
+
+def compute_reward(state: dict, action: dict) -> dict:
+    """
+    Energy‑aware forward progress:
+    - progress: forward displacement multiplied by a cosines similarity with heading.
+    - stability: inverse of kinetic energy in the base (penalizes high pitch/yaw rates).
+    - efficiency: reward inversely proportional to total squared torque (like effort).
+    - alive_bonus: tiny constant for being alive.
+    """
+    # Forward progress approximated by ground_velocity * dt
+    dt = state.get('dt', 0.01)
+    ground_vel = state.get('ground_velocity', 0.0)
+    progress = ground_vel * dt  # meters moved this step
+
+    # Heading alignment: if yaw deviates from zero, reduce forward progress reward
+    yaw = state.get('yaw', 0.0)
+    alignment = math.cos(yaw)  # 1 when yaw=0, reduces as yaw grows
+    progress_aligned = progress * alignment
+
+    # Stability: penalize base kinetic energy (0.5*I*omega^2) – use proxy with rates
+    pitch_rate = state.get('pitch_rate', 0.0)
+    yaw_rate = state.get('yaw_rate', 0.0)
+    ke_proxy = 0.5 * (pitch_rate * pitch_rate + yaw_rate * yaw_rate)
+    stability = -0.1 * ke_proxy  # negative penalty
+
+    # Efficiency: torque cost
+    torque_sq_sum = 0.0
+    for side in ('left', 'right'):
+        for joint in ('hip', 'knee', 'wheel'):
+            torque_sq_sum += state.get(f'{side}_{joint}_torque', 0.0) ** 2
+    efficiency = -0.0005 * torque_sq_sum
+
+    alive_bonus = 0.02
+
+    return {
+        'progress': progress_aligned,
+        'stability': stability,
+        'efficiency': efficiency,
+        'alive_bonus': alive_bonus,
+    }
+```
