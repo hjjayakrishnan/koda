@@ -321,7 +321,7 @@ def push_handling():
     ]
     result = scorer.score(rollout(none_recovered), "never")
     check("never recovering is flagged",
-          "never_recovered_from_push" in result["violations"])
+          "never_recovered_from_disturbance" in result["violations"])
     check("recovery_time_s is None when nothing recovered",
           result["measurements"]["recovery_time_s"] is None)
 
@@ -496,7 +496,7 @@ def geometric_mean_never_inflates():
 
 def recovery_needs_an_actual_disturbance():
     """Defect 9: the shove flag must not fire when nothing shoved the robot."""
-    print("never_recovered_from_push needs something to have recovered FROM")
+    print("never_recovered_from_disturbance needs something to have recovered FROM")
 
     def with_push(**over):
         base = dict(kind="push", commanded_speed=0.6,
@@ -512,8 +512,8 @@ def recovery_needs_an_actual_disturbance():
     # Nothing ever crossed the pitch threshold -- there was no shove at all.
     calm = scorer.score(rollout(task + with_push(disturbed=False,
                                                  recovered=False)), "calm")
-    check("no disturbance means no never_recovered_from_push violation",
-          "never_recovered_from_push" not in calm["violations"],
+    check("no disturbance means no never_recovered_from_disturbance violation",
+          "never_recovered_from_disturbance" not in calm["violations"],
           str(calm["violations"]))
     check("non_recovery_count is 0, not the number of push episodes",
           calm["measurements"]["non_recovery_count"] == 0,
@@ -525,7 +525,7 @@ def recovery_needs_an_actual_disturbance():
     knocked = scorer.score(rollout(task + with_push(disturbed=True,
                                                     recovered=False)), "knocked")
     check("a real disturbance with no recovery still violates",
-          "never_recovered_from_push" in knocked["violations"],
+          "never_recovered_from_disturbance" in knocked["violations"],
           str(knocked["violations"]))
     check("non_recovery_count counts all 5", 
           knocked["measurements"]["non_recovery_count"] == 5)
@@ -534,7 +534,7 @@ def recovery_needs_an_actual_disturbance():
     ok = scorer.score(rollout(task + with_push(disturbed=True, recovered=True,
                                                recovery_time_s=1.4)), "ok")
     check("disturbed then recovered does not violate",
-          "never_recovered_from_push" not in ok["violations"],
+          "never_recovered_from_disturbance" not in ok["violations"],
           str(ok["violations"]))
 
     check("the three cases do not change the score",

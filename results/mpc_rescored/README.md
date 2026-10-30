@@ -21,7 +21,7 @@ mean_speed_error           0.2831 m/s
 displacement_frac          0.4533
 max_pitch_excursion_deg    8.49
 peak_torque_frac_wheel     1.0           saturates the wheels
-violations                 wheel_torque_exceeded, never_recovered_from_push
+violations                 wheel_torque_exceeded, never_recovered_from_disturbance
 ```
 
 Distance covered, by commanded speed:
@@ -51,6 +51,6 @@ balance outright. The entire gap is speed tracking: r3c2's mean speed error is
 1.0823 m/s against MPC's 0.2831, about four times worse. The search produced a
 balancer, not a tracker.
 
-`never_recovered_from_push` fires here too, for the same reason it fires on every
+`never_recovered_from_disturbance` fires here too, for the same reason it fires on every
 candidate: with `PUSH_NEWTONS = 0.0` there is no shove to recover from. See
 RULES.md defect 9. It is recorded, not priced into the score.

@@ -5,7 +5,7 @@
     "code_sha_short": "447f8c7",
     "dirty": false,
     "scorer": "koda-v1",
-    "scorer_sha": "c2c2e7d",
+    "scorer_sha": "22289de",
     "init_pitch_rad": 0.02,
     "push_newtons": 0.0,
     "episodes_per_candidate": 20,
@@ -57,7 +57,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -663,7 +663,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -1269,7 +1269,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -1875,7 +1875,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -2480,9 +2480,9 @@
         "violations": [
           "wheel_torque_exceeded",
           "fell_over",
-          "never_recovered_from_push"
+          "never_recovered_from_disturbance"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -3087,9 +3087,9 @@
         "violations": [
           "wheel_torque_exceeded",
           "fell_over",
-          "never_recovered_from_push"
+          "never_recovered_from_disturbance"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -3695,7 +3695,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -4300,9 +4300,9 @@
         "violations": [
           "wheel_torque_exceeded",
           "fell_over",
-          "never_recovered_from_push"
+          "never_recovered_from_disturbance"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -4907,9 +4907,9 @@
         "violations": [
           "wheel_torque_exceeded",
           "fell_over",
-          "never_recovered_from_push"
+          "never_recovered_from_disturbance"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -5515,7 +5515,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -6120,9 +6120,9 @@
         "violations": [
           "wheel_torque_exceeded",
           "fell_over",
-          "never_recovered_from_push"
+          "never_recovered_from_disturbance"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -6728,7 +6728,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -7334,7 +7334,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -7939,7 +7939,7 @@
         "violations": [
           "wheel_torque_exceeded"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -8545,7 +8545,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -9151,7 +9151,7 @@
           "wheel_torque_exceeded",
           "fell_over"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",
@@ -9756,9 +9756,9 @@
         "violations": [
           "wheel_torque_exceeded",
           "fell_over",
-          "never_recovered_from_push"
+          "never_recovered_from_disturbance"
         ],
-        "scorer_sha": "c2c2e7d"
+        "scorer_sha": "22289de"
       },
       "rollout": {
         "schema_version": "2.0",

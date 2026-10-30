@@ -111,7 +111,7 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
     if measurements["closest_joint_margin_deg"] <= 0.0:
         violations.append("joint_limit_hit")
     if push and not recovered:
-        violations.append("never_recovered_from_push")
+        violations.append("never_recovered_from_disturbance")
 
     per_speed = {}
     for speed in sorted({e["commanded_speed"] for e in task}):

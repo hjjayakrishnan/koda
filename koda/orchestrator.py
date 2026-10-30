@@ -286,7 +286,15 @@ def run(
             "compute_seconds": 0.0,
             "usd_compute": 0.0,
             "usd_tokens": 0.0,
-            "note": "stub trainer and fixture candidates: nothing was spent",
+            # Filled in at the end, from what actually happened. It used to be
+            # hardcoded here, before a single call had been made, to "stub
+            # trainer and fixture candidates: nothing was spent" -- and it said
+            # that on search_11, which made 3 paid Nemotron calls. The line was
+            # also written twice in this same dict, so one copy silently
+            # overwrote the other. A bill must be a record, not a hope.
+            "candidate_source": source,
+            "model": None,
+            "note": None,
         },
     }
 
@@ -382,6 +390,21 @@ def run(
         ]
 
     record["bill"]["compute_seconds"] = round(record["bill"]["compute_seconds"], 1)
+
+    # The note, written from the counts rather than assumed in advance.
+    calls = record["bill"]["model_calls"]
+    if calls:
+        record["bill"]["model"] = record.get("model")
+        record["bill"]["note"] = (
+            f"{calls} PAID call(s) to {record.get('model')} on Nebius Token "
+            f"Factory. usd_compute and usd_tokens are 0.0 because no cost is "
+            f"recorded anywhere, NOT because nothing was spent."
+        )
+    else:
+        record["bill"]["note"] = (
+            f"source={source}, trainer={trainer_name}: no model call was made "
+            f"and nothing was spent."
+        )
     record["wall_seconds"] = round(time.time() - started, 2)
     run_path.write_text(json.dumps(record, indent=2))
     return record

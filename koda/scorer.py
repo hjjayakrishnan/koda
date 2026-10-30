@@ -124,7 +124,7 @@ VIOLATIONS = (
     "leg_torque_exceeded",
     "joint_limit_hit",
     "fell_over",
-    "never_recovered_from_push",
+    "never_recovered_from_disturbance",
 )
 
 
@@ -361,7 +361,8 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
     leg_frac = peak_leg / state_mod.LEG_TORQUE_LIMIT_NM
     wheel_frac = peak_wheel / state_mod.WHEEL_TORQUE_LIMIT_NM
 
-    # DEFECT 9, fixed 2026-10-29. `never_recovered_from_push` used to fire
+    # DEFECT 9. Renamed 2026-10-29 from `never_recovered_from_push`, which
+    # used to fire
     # whenever a push episode existed and none reported recovery. Once the user
     # set PUSH_NEWTONS to 0.0 there was no shove to recover FROM, so the flag
     # stopped meaning what its name says: what trips `disturbed` in
@@ -376,6 +377,15 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
     # grade depend on a constant instead of on what the robot actually did.
     # A rollout predating the field reports None, which is falsy, so it counts
     # as not disturbed rather than inventing a verdict.
+    #
+    # Gating it was only half the fix, and the first live search showed why: the
+    # model was told "knocked off upright 5 time(s) and never came back" and
+    # given a violation with the word "push" in it, on a run where
+    # PUSH_NEWTONS was 0.0 and nothing had pushed anything. What knocks the
+    # robot past RECOVERY_PITCH_RAD with no shove is its own instability. That
+    # is worth reporting -- it just is not a push. The flag is now named for
+    # what it measures: knocked off upright, and never came back. True whether
+    # a shove or the robot's own wobble did it.
     disturbed = [e for e in push if e.get("disturbed")]
     recovered = [e for e in disturbed if e.get("recovered")]
     fell = [e for e in episodes if e.get("fell")]
@@ -442,7 +452,7 @@ def score(rollout: dict, candidate_id: str = "candidate") -> dict:
     if fell:
         violations.append("fell_over")
     if disturbed and not recovered:
-        violations.append("never_recovered_from_push")
+        violations.append("never_recovered_from_disturbance")
 
     per_speed = {}
     for speed in sorted({e["commanded_speed"] for e in task}):
