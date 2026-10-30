@@ -215,6 +215,20 @@ def _human_baseline(path, goal, seed, trainer=trainer_stub, run_dir="runs"):
     }
 
 
+def beats_best(round_score, best_so_far) -> bool:
+    """Should this round's winner become the reward the model improves next?
+
+    Only if it beat every round before it. This used to be "yes, always", so
+    the model was shown the LAST round's winner even when an earlier round had
+    done better: in search_12 round 2 scored 0.0560 against round 1's 0.0740,
+    and round 3 was bred from the worse parent. Eureka keeps the best reward
+    function found so far; this makes the loop do the same.
+    """
+    if round_score is None:
+        return False
+    return best_so_far is None or round_score > best_so_far
+
+
 def run(
     goal: str,
     robot: str = "upkie",
@@ -224,6 +238,7 @@ def run(
     seed: int = 0,
     search_id: str = "A_healthy_upkie",
     run_id: str | None = None,
+    from_reward: str | None = None,
     human_baseline_path: str | None = None,
     source: str = "fixtures",
     trainer_name: str = "pybullet",
@@ -303,7 +318,11 @@ def run(
             human_baseline_path, goal, seed, trainer, run_dir
         )  # baseline uses the trainer's own default step count
 
-    best_source = None
+    # FIX 1, 2026-10-29. Round 1 used to always start from nothing, so the
+    # winner of a finished search could not be carried into the next one. Now a
+    # reward function can be handed in and round 1 improves THAT instead.
+    best_source = Path(from_reward).read_text() if from_reward else None
+    best_reward_score = None  # FIX 2: the best score seen in ANY round so far
     best_reflection = None
     previous_errors = []
 
@@ -380,9 +399,19 @@ def run(
         )
         run_path.write_text(json.dumps(record, indent=2))
 
-        if winner:
+        # FIX 2, 2026-10-29. This used to be `if winner:` -- the model was shown
+        # the LAST round's winner even when an earlier round had done better.
+        # In search_12 round 2 scored 0.0560 against round 1's 0.0740, so round
+        # 3 was bred from the worse parent. It recovered to 0.1468 anyway, which
+        # was luck. Eureka keeps the best reward function found so far and
+        # improves that one; this now does the same.
+        if winner and beats_best(winner["score"]["score"], best_reward_score):
             best_source = winner["source"]
             best_reflection = round_record["reflection"]
+            best_reward_score = winner["score"]["score"]
+            round_record["became_parent"] = True
+        else:
+            round_record["became_parent"] = False
         previous_errors = [
             (r["candidate_id"], r["trainer"]["status"], r["trainer"]["error"])
             for r in records
@@ -414,6 +443,7 @@ def search_all(
     goal: str,
     seeds=(11,),
     run_id: str | None = None,
+    from_reward: str | None = None,
     robot: str = "upkie",
     rounds: int = 3,
     candidates: int = 6,
@@ -457,6 +487,7 @@ def search_all(
             seed=seed,
             search_id=f"seed_{seed}",
             run_id=run_id if run_id else f"search_{seed}",
+            from_reward=from_reward,
             human_baseline_path=human_baseline_path,
             source=source,
             trainer_name=trainer_name,

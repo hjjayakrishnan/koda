@@ -1,0 +1,624 @@
+{
+  "schema_version": "2.0",
+  "candidate_id": "r3c1_1M",
+  "round": 1,
+  "trainer": "pybullet-ppo",
+  "status": "trained",
+  "error": null,
+  "terms": {
+    "checkpoints": [
+      0.1,
+      0.25,
+      0.5,
+      1.0
+    ],
+    "values": {
+      "speed_track": [
+        -0.3443,
+        -0.2802,
+        -0.1703,
+        -0.0957
+      ],
+      "yaw_track": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "upright_gauss": [
+        0.7694,
+        0.8895,
+        0.9062,
+        0.9269
+      ],
+      "joint_vel_penalty": [
+        -0.0212,
+        -0.0282,
+        -0.0434,
+        -0.0289
+      ],
+      "torque_penalty": [
+        -0.0014,
+        -0.0011,
+        -0.0009,
+        -0.0005
+      ],
+      "contact_bonus": [
+        0.0088,
+        0.0097,
+        0.0097,
+        0.0098
+      ]
+    },
+    "total": [
+      0.4113,
+      0.5897,
+      0.7013,
+      0.8116
+    ]
+  },
+  "rollout": {
+    "schema_version": "2.0",
+    "episodes": [
+      {
+        "kind": "task",
+        "seed": 11,
+        "commanded_speed": 0.3,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 14.815,
+        "steps_survived": 2963,
+        "step_limit": 4000,
+        "mean_speed_error": 0.2606,
+        "net_displacement_m": 0.5825,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.219,
+        "closest_joint_margin_deg": 70.95,
+        "peak_torque_nm": {
+          "leg": 1.6193,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1408,
+          "wheel": 0.2668
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 52
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 11,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 6.845,
+        "steps_survived": 1369,
+        "step_limit": 4000,
+        "mean_speed_error": 0.3326,
+        "net_displacement_m": 4.3973,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.771,
+        "closest_joint_margin_deg": 71.081,
+        "peak_torque_nm": {
+          "leg": 1.3542,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1637,
+          "wheel": 0.7732
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 382
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 11,
+        "commanded_speed": 0.9,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 8.86,
+        "steps_survived": 1772,
+        "step_limit": 4000,
+        "mean_speed_error": 0.2833,
+        "net_displacement_m": 6.353,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.845,
+        "closest_joint_margin_deg": 71.13,
+        "peak_torque_nm": {
+          "leg": 1.7044,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1927,
+          "wheel": 0.8656
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 573
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 23,
+        "commanded_speed": 0.3,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 6.78,
+        "steps_survived": 1356,
+        "step_limit": 4000,
+        "mean_speed_error": 0.391,
+        "net_displacement_m": 4.0248,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.071,
+        "closest_joint_margin_deg": 71.069,
+        "peak_torque_nm": {
+          "leg": 1.3669,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1654,
+          "wheel": 0.7262
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 330
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 23,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 12.525,
+        "steps_survived": 2505,
+        "step_limit": 4000,
+        "mean_speed_error": 0.3151,
+        "net_displacement_m": 5.3682,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.827,
+        "closest_joint_margin_deg": 70.851,
+        "peak_torque_nm": {
+          "leg": 2.0832,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.4201,
+          "wheel": 0.879
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 787
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 23,
+        "commanded_speed": 0.9,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 5.375,
+        "steps_survived": 1075,
+        "step_limit": 4000,
+        "mean_speed_error": 0.4324,
+        "net_displacement_m": 3.5366,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.72,
+        "closest_joint_margin_deg": 71.21,
+        "peak_torque_nm": {
+          "leg": 1.3821,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1672,
+          "wheel": 0.773
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 289
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 37,
+        "commanded_speed": 0.3,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 14.575,
+        "steps_survived": 2915,
+        "step_limit": 4000,
+        "mean_speed_error": 0.219,
+        "net_displacement_m": 1.8457,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.893,
+        "closest_joint_margin_deg": 70.971,
+        "peak_torque_nm": {
+          "leg": 1.5978,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.2036,
+          "wheel": 0.4406
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 236
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 37,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 20.0,
+        "steps_survived": 4000,
+        "step_limit": 4000,
+        "mean_speed_error": 0.5756,
+        "net_displacement_m": 0.4889,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 3.227,
+        "closest_joint_margin_deg": 71.071,
+        "peak_torque_nm": {
+          "leg": 1.4344,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1512,
+          "wheel": 0.2041
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 19
+        },
+        "fell": false
+      },
+      {
+        "kind": "task",
+        "seed": 37,
+        "commanded_speed": 0.9,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 7.255,
+        "steps_survived": 1451,
+        "step_limit": 4000,
+        "mean_speed_error": 0.374,
+        "net_displacement_m": 4.7773,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.46,
+        "closest_joint_margin_deg": 71.142,
+        "peak_torque_nm": {
+          "leg": 1.2855,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1637,
+          "wheel": 0.8173
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 463
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 53,
+        "commanded_speed": 0.3,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 20.0,
+        "steps_survived": 4000,
+        "step_limit": 4000,
+        "mean_speed_error": 0.2761,
+        "net_displacement_m": 0.4786,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 2.884,
+        "closest_joint_margin_deg": 71.105,
+        "peak_torque_nm": {
+          "leg": 1.4667,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1261,
+          "wheel": 0.2064
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 21
+        },
+        "fell": false
+      },
+      {
+        "kind": "task",
+        "seed": 53,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 18.98,
+        "steps_survived": 3796,
+        "step_limit": 4000,
+        "mean_speed_error": 0.5846,
+        "net_displacement_m": 0.2898,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.15,
+        "closest_joint_margin_deg": 71.149,
+        "peak_torque_nm": {
+          "leg": 1.4805,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1409,
+          "wheel": 0.2642
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 50
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 53,
+        "commanded_speed": 0.9,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 12.5,
+        "steps_survived": 2500,
+        "step_limit": 4000,
+        "mean_speed_error": 0.706,
+        "net_displacement_m": 2.4081,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.196,
+        "closest_joint_margin_deg": 71.205,
+        "peak_torque_nm": {
+          "leg": 1.4889,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1631,
+          "wheel": 0.5142
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 302
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 71,
+        "commanded_speed": 0.3,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 18.71,
+        "steps_survived": 3742,
+        "step_limit": 4000,
+        "mean_speed_error": 0.264,
+        "net_displacement_m": 0.7637,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.273,
+        "closest_joint_margin_deg": 70.956,
+        "peak_torque_nm": {
+          "leg": 1.6129,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1415,
+          "wheel": 0.2564
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 50
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 71,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 14.515,
+        "steps_survived": 2903,
+        "step_limit": 4000,
+        "mean_speed_error": 0.4264,
+        "net_displacement_m": 2.6316,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.69,
+        "closest_joint_margin_deg": 71.128,
+        "peak_torque_nm": {
+          "leg": 1.9538,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.3621,
+          "wheel": 0.6389
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 556
+        },
+        "fell": true
+      },
+      {
+        "kind": "task",
+        "seed": 71,
+        "commanded_speed": 0.9,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 4.925,
+        "steps_survived": 985,
+        "step_limit": 4000,
+        "mean_speed_error": 0.4343,
+        "net_displacement_m": 3.2382,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.253,
+        "closest_joint_margin_deg": 71.229,
+        "peak_torque_nm": {
+          "leg": 1.5193,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1682,
+          "wheel": 0.7922
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 282
+        },
+        "fell": true
+      },
+      {
+        "kind": "push",
+        "seed": 11,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 6.845,
+        "steps_survived": 1369,
+        "step_limit": 4000,
+        "mean_speed_error": 0.3326,
+        "net_displacement_m": 4.3973,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.771,
+        "closest_joint_margin_deg": 71.081,
+        "peak_torque_nm": {
+          "leg": 1.3542,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1637,
+          "wheel": 0.7732
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 382
+        },
+        "fell": true,
+        "disturbed": true,
+        "recovered": false,
+        "recovery_time_s": 6.845
+      },
+      {
+        "kind": "push",
+        "seed": 23,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 12.525,
+        "steps_survived": 2505,
+        "step_limit": 4000,
+        "mean_speed_error": 0.3151,
+        "net_displacement_m": 5.3682,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.827,
+        "closest_joint_margin_deg": 70.851,
+        "peak_torque_nm": {
+          "leg": 2.0832,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.4201,
+          "wheel": 0.879
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 787
+        },
+        "fell": true,
+        "disturbed": true,
+        "recovered": false,
+        "recovery_time_s": 12.525
+      },
+      {
+        "kind": "push",
+        "seed": 37,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 20.0,
+        "steps_survived": 4000,
+        "step_limit": 4000,
+        "mean_speed_error": 0.5756,
+        "net_displacement_m": 0.4889,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 3.227,
+        "closest_joint_margin_deg": 71.071,
+        "peak_torque_nm": {
+          "leg": 1.4344,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1512,
+          "wheel": 0.2041
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 19
+        },
+        "fell": false,
+        "disturbed": false,
+        "recovered": false,
+        "recovery_time_s": 20.0
+      },
+      {
+        "kind": "push",
+        "seed": 53,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 18.98,
+        "steps_survived": 3796,
+        "step_limit": 4000,
+        "mean_speed_error": 0.5846,
+        "net_displacement_m": 0.2898,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 58.15,
+        "closest_joint_margin_deg": 71.149,
+        "peak_torque_nm": {
+          "leg": 1.4805,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.1409,
+          "wheel": 0.2642
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 50
+        },
+        "fell": true,
+        "disturbed": true,
+        "recovered": false,
+        "recovery_time_s": 18.98
+      },
+      {
+        "kind": "push",
+        "seed": 71,
+        "commanded_speed": 0.6,
+        "commanded_yaw_rate": 0.0,
+        "episode_seconds": 14.515,
+        "steps_survived": 2903,
+        "step_limit": 4000,
+        "mean_speed_error": 0.4264,
+        "net_displacement_m": 2.6316,
+        "heading_error_deg": 0.0,
+        "max_pitch_excursion_deg": 57.69,
+        "closest_joint_margin_deg": 71.128,
+        "peak_torque_nm": {
+          "leg": 1.9538,
+          "wheel": 1.7
+        },
+        "rms_torque_nm": {
+          "leg": 0.3621,
+          "wheel": 0.6389
+        },
+        "saturated_steps": {
+          "leg": 0,
+          "wheel": 556
+        },
+        "fell": true,
+        "disturbed": true,
+        "recovered": false,
+        "recovery_time_s": 14.515
+      }
+    ]
+  },
+  "policy_path": "runs/r3c1_1M/policy.zip",
+  "video_path": null,
+  "train_seconds": 2071.0,
+  "compute_seconds": 2170.9
+}

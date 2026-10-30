@@ -33,6 +33,13 @@ def main(argv=None) -> int:
              "name is already used: candidate ids are r1c1..r3c6 in every "
              "search, so without it a second search overwrites the first.",
     )
+    run.add_argument(
+        "--from-reward",
+        default=None,
+        help="path to a reward .py to START from. Round 1 improves this one "
+             "instead of starting from nothing, so a finished search's winner "
+             "can be carried into the next search.",
+    )
     run.add_argument("--robot", default="upkie", help="which robot (only upkie so far)")
     run.add_argument("--goal", default=GOAL, help="the goal, in one sentence")
     run.add_argument("--rounds", type=int, default=3)
@@ -109,6 +116,7 @@ def main(argv=None) -> int:
     summary = orchestrator.search_all(
         goal=args.goal,
         run_id=args.run_id,
+        from_reward=args.from_reward,
         seeds=seeds,
         robot=args.robot,
         rounds=args.rounds,
